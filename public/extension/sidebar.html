@@ -1,32 +1,167 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 15px; background: #f4f4f9; color: #333; height: 100vh; display: flex; flex-col: column; }
-    h2 { font-size: 18px; color: #673AB7; margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
-    .btn-capture { background: #90FF31; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; }
-    .kanban-container { display: flex; gap: 10px; overflow-x: auto; flex: 1; padding-bottom: 20px; }
-    .column { background: #ebedef; border-radius: 8px; min-width: 250px; display: flex; flex-direction: column; max-height: 100%; }
-    .column-header { padding: 10px; font-weight: bold; border-bottom: 2px solid #ddd; display: flex; justify-content: space-between; }
-    .cards { flex: 1; overflow-y: auto; padding: 10px; }
-    .card { background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 4px solid #ccc; position: relative; }
-    .card-title { font-weight: bold; font-size: 13px; margin-bottom: 5px; display: block; }
-    .card-meta { font-size: 10px; color: #888; }
-    .card-actions { margin-top: 8px; display: flex; justify-content: space-between; }
-    .btn-icon { background: none; border: none; cursor: pointer; padding: 2px; font-size: 14px; }
-    .empty-state { text-align: center; color: #aaa; margin-top: 50px; font-size: 14px; }
+    :root {
+      --bg: rgba(248, 250, 252, 0.95);
+      --primary: #6366f1;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      backdrop-filter: blur(10px);
+      height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .nav-btns button {
+      background: #eee;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 5px;
+      font-weight: 500;
+    }
+    .nav-btns button.active {
+      background: var(--primary);
+      color: white;
+    }
+    .close-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* Kanban Styles */
+    #kanban-container {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+      overflow-x: auto;
+      padding-bottom: 20px;
+    }
+    .kanban-column {
+      width: 280px;
+      flex-shrink: 0;
+      background: rgba(226, 232, 240, 0.5);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+    .column-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+    .column-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+    .cards-list { flex: 1; min-height: 100px; }
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      cursor: grab;
+      position: relative;
+    }
+    .card-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .card-content { font-size: 12px; color: #64748b; line-height: 1.4; }
+    .card-tag { 
+      background: #e0e7ff; color: #4338ca; 
+      font-size: 10px; padding: 2px 6px; border-radius: 4px; 
+      display: inline-block; margin-top: 8px; 
+    }
+    .delete-card { 
+      position: absolute; top: 5px; right: 5px; 
+      border: none; background: transparent; cursor: pointer; color: #ccc;
+    }
+
+    /* Responses Styles */
+    .responses-editor {
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .input-group { margin-bottom: 15px; }
+    .input-group label { display: block; font-size: 12px; margin-bottom: 5px; font-weight: 600; }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    .save-btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .responses-list { margin-top: 30px; }
+    .response-item {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .delete-btn { color: #ef4444; border: none; background: none; cursor: pointer; font-size: 12px; }
   </style>
 </head>
 <body>
-  <h2>
-    TeamsFlow Kanban
-    <button id="btn-capture" class="btn-capture">+ Capturar Chat</button>
-  </h2>
-  
-  <div id="kanban" class="kanban-container">
-    <!-- Colunas serão inseridas aqui via JS -->
+  <div class="header">
+    <div class="nav-btns">
+      <button id="btn-kanban" onclick="switchView('kanban')" class="active">Board Kanban</button>
+      <button id="btn-responses" onclick="switchView('responses')">Respostas Rápidas</button>
+    </div>
+    <button class="close-btn" onclick="closeOverlay()">Voltar para o Teams</button>
+  </div>
+
+  <div id="kanban-view">
+    <div id="kanban-container"></div>
+  </div>
+
+  <div id="responses-view" style="display:none;">
+    <div class="responses-editor">
+      <h3>Configurar Respostas</h3>
+      <div class="input-group">
+        <label>Gatilho (ex: /ola)</label>
+        <input type="text" id="trigger-input" placeholder="/seu-atalho">
+      </div>
+      <div class="input-group">
+        <label>Texto da Resposta</label>
+        <textarea id="text-input" rows="4" placeholder="O que deve ser escrito..."></textarea>
+      </div>
+      <button class="save-btn" onclick="saveResponse()">Salvar Resposta</button>
+      
+      <div id="responses-list" class="responses-list"></div>
+    </div>
   </div>
 
   <script src="sidebar.js"></script>

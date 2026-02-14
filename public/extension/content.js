@@ -1,108 +1,97 @@
-// TeamsFlow Pro - Content Script
-console.log("TeamsFlow Pro: Iniciado");
 
-let isKanbanOpen = false;
-let isResponsesOpen = false;
+// TeamsFlow Content Script - Resiliente
+console.log("TeamsFlow: Script carregado");
 
-// Função para injetar o menu de ações
-function injectFlowMenu() {
-  if (document.getElementById('tf-flow-menu')) return;
+function scrapeTeamsChats() {
+  const chats = [];
+  // Seletores comuns no Teams Web para itens de chat
+  const chatElements = document.querySelectorAll('[data-tid="chat-list-item"], .chat-list-item, [role="listitem"]');
+  
+  chatElements.forEach((el, index) => {
+    // Tenta encontrar o nome do contato e a última mensagem
+    const titleEl = el.querySelector('.name, [class*="title"], h3, span[class*="name"]');
+    const msgEl = el.querySelector('.last-message, [class*="last-message"], [class*="preview"]');
+    
+    if (titleEl) {
+      chats.push({
+        id: `teams-chat-${index}`,
+        title: titleEl.innerText.trim(),
+        content: msgEl ? msgEl.innerText.trim() : "Sem mensagem recente",
+        isLive: true
+      });
+    }
+  });
 
-  const menu = document.createElement('div');
-  menu.id = 'tf-flow-menu';
-  menu.innerHTML = `
-    <div class="tf-fab-container">
-      <div class="tf-fab-options">
-        <button id="tf-btn-responses" title="Respostas Rápidas"><span>R</span></button>
-        <button id="tf-btn-kanban" title="Abrir Kanban"><span>K</span></button>
-      </div>
-      <button id="tf-fab-main" class="tf-fab-main">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M11 3v18"/><path d="M3 8h8"/><path d="M3 13h8"/><path d="M3 18h8"/><path d="M11 13h10"/></svg>
-      </button>
+  return chats.slice(0, 15); // Pega os 15 primeiros
+}
+
+function injectTeamsFlow() {
+  if (document.getElementById('teamsflow-root')) return;
+
+  const container = document.createElement('div');
+  container.id = 'teamsflow-root';
+  container.innerHTML = `
+    <div id="tf-fab" title="TeamsFlow">T</div>
+    <div id="tf-overlay" style="display: none;">
+      <iframe id="tf-iframe" src="${chrome.runtime.getURL('sidebar.html')}"></iframe>
     </div>
   `;
-  document.body.appendChild(menu);
+  document.body.appendChild(container);
 
-  document.getElementById('tf-btn-kanban').onclick = toggleKanban;
-  document.getElementById('tf-btn-responses').onclick = toggleResponses;
-  document.getElementById('tf-fab-main').onclick = () => {
-    document.querySelector('.tf-fab-container').classList.toggle('active');
+  const fab = container.querySelector('#tf-fab');
+  const overlay = container.querySelector('#tf-overlay');
+
+  fab.onclick = () => {
+    const isVisible = overlay.style.display === 'block';
+    overlay.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+      // Ao abrir, envia os chats capturados para o iframe
+      setTimeout(() => {
+        const iframe = document.getElementById('tf-iframe');
+        iframe.contentWindow.postMessage({ 
+          type: 'TEAMSFLOW_LOAD_CHATS', 
+          chats: scrapeTeamsChats() 
+        }, '*');
+      }, 500);
+    }
   };
 }
 
-function toggleKanban() {
-  isKanbanOpen = !isKanbanOpen;
-  if (isKanbanOpen) {
-    const overlay = document.createElement('iframe');
-    overlay.id = 'tf-kanban-overlay';
-    overlay.src = chrome.runtime.getURL('kanban.html');
-    document.body.appendChild(overlay);
-    // Envia os chats recentes para o iframe assim que carregar
-    overlay.onload = () => {
-      const chats = scrapeRecentChats();
-      overlay.contentWindow.postMessage({ type: 'TF_RECENT_CHATS', chats }, '*');
-    };
-  } else {
-    document.getElementById('tf-kanban-overlay')?.remove();
-  }
-}
-
-function toggleResponses() {
-  isResponsesOpen = !isResponsesOpen;
-  if (isResponsesOpen) {
-    const overlay = document.createElement('iframe');
-    overlay.id = 'tf-responses-overlay';
-    overlay.src = chrome.runtime.getURL('responses.html');
-    document.body.appendChild(overlay);
-  } else {
-    document.getElementById('tf-responses-overlay')?.remove();
-  }
-}
-
-// Scraper de conversas reais do Teams
-function scrapeRecentChats() {
-  const chatElements = document.querySelectorAll('[data-tid="chat-list-item"]');
-  const chats = [];
-  chatElements.forEach((el, index) => {
-    if (index > 10) return; // Limita aos 10 primeiros
-    const name = el.querySelector('[class*="title"]')?.innerText || "Contato";
-    const msg = el.querySelector('[class*="message"]')?.innerText || "Sem mensagens";
-    const url = window.location.href; // Simplificado: usa a URL atual
-    chats.push({ id: `recent-${index}`, name, lastMessage: msg, url });
-  });
-  return chats;
-}
-
-// Listener para fechar overlays e outras comunicações
+// Escuta mensagens do Iframe (ex: fechar overlay)
 window.addEventListener('message', (event) => {
-  if (event.data.type === 'TF_CLOSE_KANBAN') toggleKanban();
-  if (event.data.type === 'TF_CLOSE_RESPONSES') toggleResponses();
+  if (event.data.type === 'TEAMSFLOW_CLOSE_OVERLAY') {
+    const overlay = document.getElementById('tf-overlay');
+    if (overlay) overlay.style.display = 'none';
+  }
 });
 
-// Monitor de digitação para Respostas Rápidas
+// Auto-substituição de gatilhos no input do Teams
 document.addEventListener('input', (e) => {
   const target = e.target;
-  if (target.tagName === 'DIV' && target.getAttribute('contenteditable') === 'true') {
-    const text = target.innerText;
-    if (text.includes('/')) {
-      chrome.storage.local.get(['responses'], (result) => {
-        const responses = result.responses || [];
-        responses.forEach(r => {
-          if (text.endsWith(r.trigger)) {
-            const newText = text.replace(r.trigger, r.text);
+  if (target.getAttribute('contenteditable') === 'true' || target.tagName === 'TEXTAREA') {
+    chrome.storage.local.get(['tf_responses'], (result) => {
+      const responses = result.tf_responses || [];
+      const text = target.innerText || target.value;
+      
+      responses.forEach(resp => {
+        if (text.includes(resp.trigger)) {
+          const newText = text.replace(resp.trigger, resp.text);
+          if (target.getAttribute('contenteditable') === 'true') {
             target.innerText = newText;
-            // Posiciona o cursor no final
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.selectNodeContents(target);
-            range.collapse(false);
-            sel.removeAllRanges();
-            sel.addRange(range);
+          } else {
+            target.value = newText;
           }
-        });
+          // Move o cursor para o final
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.selectNodeContents(target);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
       });
-    }
+    });
   }
 });
 
-setInterval(injectFlowMenu, 2000);
+setInterval(injectTeamsFlow, 2000);
