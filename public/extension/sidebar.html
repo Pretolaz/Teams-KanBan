@@ -3,90 +3,73 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <title>TeamsFlow Kanban</title>
   <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
-  <div class="overlay">
-    <div class="container">
-      <!-- Header -->
-      <header class="header">
-        <div class="logo">
-          <div class="logo-icon">T</div>
-          <h1>TeamsFlow</h1>
+  <div class="overlay-container">
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">T</div>
+        <h1>TeamsFlow</h1>
+      </div>
+      <nav class="nav">
+        <button id="btn-kanban" class="nav-btn active">Kanban</button>
+        <button id="btn-responses" class="nav-btn">Respostas</button>
+        <button id="btn-close" class="close-btn">Voltar para o Teams</button>
+      </nav>
+    </header>
+
+    <main id="view-kanban" class="view active">
+      <div class="kanban-board">
+        <div class="column" id="col-recent">
+          <div class="column-header">
+            <h2>Chats Recentes</h2>
+            <span class="badge" id="count-recent">0</span>
+          </div>
+          <div class="card-list" id="list-recent">
+            <!-- Chats capturados aparecerão aqui -->
+            <p class="empty-msg">Nenhum chat visível. Abra a aba de chat do Teams.</p>
+          </div>
         </div>
-        <div class="nav-tabs">
-          <button id="btn-kanban" class="tab active">Kanban</button>
-          <button id="btn-responses" class="tab">Respostas</button>
+
+        <div class="column" id="col-todo">
+          <div class="column-header">
+            <h2 style="color: #673AB7">A Fazer</h2>
+            <span class="badge" id="count-todo">0</span>
+          </div>
+          <div class="card-list dropzone" id="list-todo"></div>
         </div>
-        <button id="close-sidebar" class="close-btn">&times;</button>
-      </header>
 
-      <!-- Kanban View -->
-      <div id="view-kanban" class="view active">
-        <div class="kanban-board">
-          <!-- Coluna 1: Chats Recentes (Automática) -->
-          <div class="column" id="col-recent">
-            <div class="column-header">
-              <h2>Conversas Recentes</h2>
-              <span class="badge" id="count-recent">0</span>
-            </div>
-            <div class="card-list" id="list-recent">
-              <div class="empty-state">Buscando chats...</div>
-            </div>
+        <div class="column" id="col-doing">
+          <div class="column-header">
+            <h2 style="color: #FF9800">Em Progresso</h2>
+            <span class="badge" id="count-doing">0</span>
           </div>
+          <div class="card-list dropzone" id="list-doing"></div>
+        </div>
 
-          <!-- Coluna 2: A Fazer -->
-          <div class="column" id="col-todo">
-            <div class="column-header" style="border-top: 4px solid #673AB7">
-              <h2>A Fazer</h2>
-              <span class="badge" id="count-todo">0</span>
-            </div>
-            <div class="card-list dropzone" data-col="todo"></div>
+        <div class="column" id="col-done">
+          <div class="column-header">
+            <h2 style="color: #4CAF50">Concluído</h2>
+            <span class="badge" id="count-done">0</span>
           </div>
-
-          <!-- Coluna 3: Em Progresso -->
-          <div class="column" id="col-doing">
-            <div class="column-header" style="border-top: 4px solid #FF9800">
-              <h2>Em Progresso</h2>
-              <span class="badge" id="count-doing">0</span>
-            </div>
-            <div class="card-list dropzone" data-col="doing"></div>
-          </div>
-
-          <!-- Coluna 4: Concluído -->
-          <div class="column" id="col-done">
-            <div class="column-header" style="border-top: 4px solid #4CAF50">
-              <h2>Concluído</h2>
-              <span class="badge" id="count-done">0</span>
-            </div>
-            <div class="card-list dropzone" data-col="done"></div>
-          </div>
+          <div class="card-list dropzone" id="list-done"></div>
         </div>
       </div>
+    </main>
 
-      <!-- Responses View -->
-      <div id="view-responses" class="view">
-        <div class="responses-container">
-          <div class="response-form card">
-            <h3>Nova Resposta Rápida</h3>
-            <div class="input-group">
-              <label>Gatilho (ex: /ola)</label>
-              <input type="text" id="resp-trigger" placeholder="/comando">
-            </div>
-            <div class="input-group">
-              <label>Texto da Resposta</label>
-              <textarea id="resp-text" placeholder="Texto que será inserido..."></textarea>
-            </div>
-            <button id="save-response" class="primary-btn">Salvar Resposta</button>
-          </div>
-          
-          <div class="response-list-section">
-            <h3>Seus Atalhos</h3>
-            <div id="response-list" class="grid-list"></div>
-          </div>
+    <main id="view-responses" class="view">
+      <div class="responses-container">
+        <div class="form-card">
+          <h3>Novo Gatilho</h3>
+          <input type="text" id="resp-trigger" placeholder="/comando">
+          <textarea id="resp-text" placeholder="Texto da resposta..."></textarea>
+          <button id="btn-save-resp" class="action-btn">Salvar Resposta</button>
         </div>
+        <div class="responses-grid" id="responses-list"></div>
       </div>
-    </div>
+    </main>
   </div>
   <script src="sidebar.js"></script>
 </body>
