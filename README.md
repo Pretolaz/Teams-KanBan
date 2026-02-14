@@ -11,7 +11,7 @@ Este projeto é uma ferramenta de produtividade composta por um **Dashboard Web*
 4.  Clique no botão **Carregar sem compactação** (Load unpacked).
 5.  Navegue até a pasta do projeto e selecione a pasta: `public/extension`.
 6.  Agora, abra o [Microsoft Teams Web](https://teams.microsoft.com/) no seu navegador.
-7.  Teste digitando um comando (ex: `/bomdia`) se você tiver configurado no storage da extensão.
+7.  Teste digitando um comando (ex: `/bomdia`) se você tiver configurado no storage da extensão. 
 
 ## Como usar o Dashboard:
 
