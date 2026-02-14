@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "teams-ui-mock",
+      "description": "A professional interface showing a chat application similar to Microsoft Teams",
+      "imageUrl": "https://picsum.photos/seed/teams1/1200/800",
+      "imageHint": "software interface"
+    },
+    {
+      "id": "kanban-bg",
+      "description": "Abstract productivity and workflow background",
+      "imageUrl": "https://picsum.photos/seed/kanban/1920/1080",
+      "imageHint": "productivity abstract"
+    }
+  ]
+}
