@@ -1,91 +1,119 @@
 
-// TeamsFlow Content Script - Resiliente
-console.log("TeamsFlow: Script carregado");
+console.log('TeamsFlow: Iniciando motor de produtividade...');
 
-function scrapeTeamsChats() {
-  const chats = [];
-  // Seletores comuns no Teams Web para itens de chat
-  const chatElements = document.querySelectorAll('[data-tid="chat-list-item"], .chat-list-item, [role="listitem"]');
-  
-  chatElements.forEach((el, index) => {
-    // Tenta encontrar o nome do contato e a última mensagem
-    const titleEl = el.querySelector('.name, [class*="title"], h3, span[class*="name"]');
-    const msgEl = el.querySelector('.last-message, [class*="last-message"], [class*="preview"]');
-    
-    if (titleEl) {
-      chats.push({
-        id: `teams-chat-${index}`,
-        title: titleEl.innerText.trim(),
-        content: msgEl ? msgEl.innerText.trim() : "Sem mensagem recente",
-        isLive: true
-      });
-    }
-  });
+function injectFlowButton() {
+  if (document.getElementById('teamsflow-trigger')) return;
 
-  return chats.slice(0, 15); // Pega os 15 primeiros
-}
-
-function injectTeamsFlow() {
-  if (document.getElementById('teamsflow-root')) return;
-
-  const container = document.createElement('div');
-  container.id = 'teamsflow-root';
-  container.innerHTML = `
-    <div id="tf-fab" title="TeamsFlow">T</div>
-    <div id="tf-overlay" style="display: none;">
-      <iframe id="tf-iframe" src="${chrome.runtime.getURL('sidebar.html')}"></iframe>
-    </div>
+  const btn = document.createElement('div');
+  btn.id = 'teamsflow-trigger';
+  btn.innerHTML = 'T';
+  btn.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: #673AB7;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 20px;
+    z-index: 999999;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
   `;
-  document.body.appendChild(container);
-
-  const fab = container.querySelector('#tf-fab');
-  const overlay = container.querySelector('#tf-overlay');
-
-  fab.onclick = () => {
-    const isVisible = overlay.style.display === 'block';
-    overlay.style.display = isVisible ? 'none' : 'block';
-    if (!isVisible) {
-      // Ao abrir, envia os chats capturados para o iframe
-      setTimeout(() => {
-        const iframe = document.getElementById('tf-iframe');
-        iframe.contentWindow.postMessage({ 
-          type: 'TEAMSFLOW_LOAD_CHATS', 
-          chats: scrapeTeamsChats() 
-        }, '*');
-      }, 500);
+  
+  btn.onmouseover = () => btn.style.transform = 'scale(1.1)';
+  btn.onmouseout = () => btn.style.transform = 'scale(1)';
+  
+  btn.onclick = () => {
+    const iframe = document.getElementById('teamsflow-sidebar');
+    if (iframe) {
+      iframe.style.display = iframe.style.display === 'none' ? 'block' : 'none';
     }
   };
+
+  document.documentElement.appendChild(btn);
 }
 
-// Escuta mensagens do Iframe (ex: fechar overlay)
+function injectSidebar() {
+  if (document.getElementById('teamsflow-sidebar')) return;
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'teamsflow-sidebar';
+  iframe.src = chrome.runtime.getURL('sidebar.html');
+  iframe.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    z-index: 999998;
+    display: none;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(5px);
+  `;
+  document.documentElement.appendChild(iframe);
+}
+
+// Escuta mensagens vindas do Iframe (sidebar.js)
 window.addEventListener('message', (event) => {
-  if (event.data.type === 'TEAMSFLOW_CLOSE_OVERLAY') {
-    const overlay = document.getElementById('tf-overlay');
-    if (overlay) overlay.style.display = 'none';
+  if (event.data.type === 'TEAMSFLOW_CLOSE') {
+    document.getElementById('teamsflow-sidebar').style.display = 'none';
+  }
+  
+  if (event.data.type === 'TEAMSFLOW_GET_CHATS') {
+    const chats = [];
+    // Tenta encontrar itens da lista de chat do Teams
+    const chatElements = document.querySelectorAll('[data-tid="chat-list-item"], [role="listitem"]');
+    
+    chatElements.forEach((el, index) => {
+      if (index > 10) return; // Limita a 10
+      const titleEl = el.querySelector('[data-tid="chat-list-item-title"], .title, h3');
+      const msgEl = el.querySelector('.last-message, .preview');
+      
+      if (titleEl) {
+        chats.push({
+          id: 'teams-' + index,
+          title: titleEl.innerText.trim(),
+          content: msgEl ? msgEl.innerText.trim() : 'Sem mensagens recentes',
+          priority: 'Low',
+          isNative: true
+        });
+      }
+    });
+
+    const iframe = document.getElementById('teamsflow-sidebar');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'TEAMSFLOW_CHATS_DATA', chats }, '*');
+    }
   }
 });
 
-// Auto-substituição de gatilhos no input do Teams
+// Respostas Rápidas: Auto-replace
 document.addEventListener('input', (e) => {
   const target = e.target;
-  if (target.getAttribute('contenteditable') === 'true' || target.tagName === 'TEXTAREA') {
+  if (target.tagName === 'DIV' && target.getAttribute('contenteditable') === 'true') {
     chrome.storage.local.get(['tf_responses'], (result) => {
       const responses = result.tf_responses || [];
-      const text = target.innerText || target.value;
+      const text = target.innerText;
       
       responses.forEach(resp => {
         if (text.includes(resp.trigger)) {
+          // Substitui o gatilho pelo texto
           const newText = text.replace(resp.trigger, resp.text);
-          if (target.getAttribute('contenteditable') === 'true') {
-            target.innerText = newText;
-          } else {
-            target.value = newText;
-          }
-          // Move o cursor para o final
+          target.innerText = newText;
+          
+          // Move o cursor para o final (Teams precisa disso para registrar a mudança)
           const range = document.createRange();
           const sel = window.getSelection();
-          range.selectNodeContents(target);
-          range.collapse(false);
+          range.setStart(target.childNodes[0], target.childNodes[0].length);
+          range.collapse(true);
           sel.removeAllRanges();
           sel.addRange(range);
         }
@@ -94,4 +122,8 @@ document.addEventListener('input', (e) => {
   }
 });
 
-setInterval(injectTeamsFlow, 2000);
+// Verifica periodicamente se o botão sumiu (devido a navegação interna do Teams)
+setInterval(() => {
+  injectFlowButton();
+  injectSidebar();
+}, 2000);
