@@ -2,95 +2,61 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>TeamsFlow Sidebar</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { background: transparent; font-family: sans-serif; overflow: hidden; }
-    .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
-    .card-drag { cursor: grab; }
-    .card-drag:active { cursor: grabbing; }
-  </style>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="sidebar.css">
 </head>
-<body class="h-screen w-screen p-8 flex items-center justify-center">
-  
-  <div class="glass w-full h-full max-w-6xl rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-white/20">
-    <!-- Header -->
-    <div class="p-6 border-b flex justify-between items-center bg-white/50">
-      <div class="flex items-center gap-4">
-        <div class="bg-indigo-600 text-white p-2 rounded-lg font-bold">TeamsFlow</div>
-        <div class="flex gap-2">
-          <button id="tab-kanban" class="px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 font-medium">Kanban</button>
-          <button id="tab-responses" class="px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-600 font-medium">Respostas Rápidas</button>
-        </div>
-      </div>
-      <button id="close-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold transition-colors">Voltar para o Teams</button>
-    </div>
-
-    <!-- Content -->
-    <div id="kanban-view" class="flex-1 p-6 overflow-x-auto">
-      <div class="flex gap-6 h-full min-w-max">
-        <!-- Coluna Nativa: Teams -->
-        <div class="w-80 flex flex-col gap-4">
-          <h3 class="font-bold text-gray-700 flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-blue-500"></span> Chats Recentes
-          </h3>
-          <div id="col-teams" class="flex-1 bg-blue-50/50 rounded-2xl p-4 space-y-3 overflow-y-auto border-2 border-dashed border-blue-200">
-            <!-- Chats do Teams aparecerão aqui -->
-          </div>
-        </div>
-
-        <!-- Coluna Kanban: A Fazer -->
-        <div class="w-80 flex flex-col gap-4">
-          <h3 class="font-bold text-gray-700 flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-purple-500"></span> A Fazer
-          </h3>
-          <div id="col-todo" data-column="todo" class="kanban-drop flex-1 bg-gray-100/50 rounded-2xl p-4 space-y-3 overflow-y-auto"></div>
-        </div>
-
-        <!-- Coluna Kanban: Em Progresso -->
-        <div class="w-80 flex flex-col gap-4">
-          <h3 class="font-bold text-gray-700 flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-orange-500"></span> Em Progresso
-          </h3>
-          <div id="col-doing" data-column="doing" class="kanban-drop flex-1 bg-gray-100/50 rounded-2xl p-4 space-y-3 overflow-y-auto"></div>
-        </div>
-
-        <!-- Coluna Kanban: Concluído -->
-        <div class="w-80 flex flex-col gap-4">
-          <h3 class="font-bold text-gray-700 flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-green-500"></span> Concluído
-          </h3>
-          <div id="col-done" data-column="done" class="kanban-drop flex-1 bg-gray-100/50 rounded-2xl p-4 space-y-3 overflow-y-auto"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Responses View -->
-    <div id="responses-view" class="hidden flex-1 p-8 overflow-y-auto">
-      <div class="max-w-2xl mx-auto space-y-8">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border">
-          <h3 class="text-xl font-bold mb-4 text-gray-800">Nova Resposta Rápida</h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Gatilho (ex: /ola)</label>
-              <input type="text" id="resp-trigger" placeholder="/comando" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+<body>
+    <div id="overlay">
+        <header class="main-header">
+            <div class="logo-area">
+                <div class="logo-icon">T</div>
+                <h1>TeamsFlow <span>v1.1</span></h1>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Texto Completo</label>
-              <textarea id="resp-text" rows="3" placeholder="Sua resposta completa..." class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+            <nav class="tabs">
+                <button class="nav-btn active" data-tab="kanban">Kanban</button>
+                <button class="nav-btn" data-tab="responses">Respostas Rápidas</button>
+            </nav>
+            <button id="close-btn" class="close-btn">Voltar para o Teams</button>
+        </header>
+
+        <main id="tab-kanban" class="tab-content active">
+            <div class="kanban-board">
+                <div class="column" id="col-recent">
+                    <h2>Chats Recentes</h2>
+                    <div class="card-list" id="recent-list">
+                        <p class="empty-msg">Buscando chats ativos...</p>
+                    </div>
+                </div>
+                <div class="column" id="col-todo">
+                    <h2>A Fazer</h2>
+                    <div class="card-list" id="todo-list"></div>
+                </div>
+                <div class="column" id="col-doing">
+                    <h2>Em Progresso</h2>
+                    <div class="card-list" id="doing-list"></div>
+                </div>
+                <div class="column" id="col-done">
+                    <h2>Concluído</h2>
+                    <div class="card-list" id="done-list"></div>
+                </div>
             </div>
-            <button id="save-resp-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Salvar Resposta</button>
-          </div>
-        </div>
+        </main>
 
-        <div id="responses-list" class="space-y-4">
-          <!-- Lista de respostas -->
-        </div>
-      </div>
+        <main id="tab-responses" class="tab-content">
+            <div class="responses-container">
+                <section class="response-form">
+                    <h3>Novo Gatilho</h3>
+                    <input type="text" id="resp-trigger" placeholder="/comando">
+                    <textarea id="resp-text" placeholder="Texto que será inserido no chat..."></textarea>
+                    <button id="save-resp-btn" class="primary-btn">Adicionar Resposta</button>
+                </section>
+                <section class="response-list">
+                    <h3>Suas Respostas</h3>
+                    <div id="responses-grid"></div>
+                </section>
+            </div>
+        </main>
     </div>
-  </div>
-
-  <script src="sidebar.js"></script>
+    <script src="sidebar.js"></script>
 </body>
 </html>

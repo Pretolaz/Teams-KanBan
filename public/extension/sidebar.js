@@ -1,176 +1,160 @@
 
-let cards = [];
-let responses = [];
+let state = {
+    cards: [],
+    responses: [],
+    recentChats: []
+};
 
-// Carrega dados iniciais
-function loadData() {
-  chrome.storage.local.get(['tf_cards', 'tf_responses'], (result) => {
-    cards = result.tf_cards || [];
-    responses = result.tf_responses || [
-      { id: '1', trigger: '/ola', text: 'Olá! Como posso ajudar você hoje?' },
-      { id: '2', trigger: '/reuniao', text: 'Poderia me enviar o link da reunião, por favor?' }
-    ];
-    renderCards();
-    renderResponses();
-  });
-  
-  // Solicita chats recentes ao content.js
-  window.parent.postMessage({ type: 'TEAMSFLOW_GET_CHATS' }, '*');
-}
-
-// Escuta chats vindos do Teams
-window.addEventListener('message', (event) => {
-  if (event.data.type === 'TEAMSFLOW_CHATS_DATA') {
-    renderNativeChats(event.data.chats);
-  }
+// Navegação entre Tabs
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => b.classList.remove('active')); // Corrigido erro de digitação b -> t
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    });
 });
 
-function renderNativeChats(chats) {
-  const container = document.getElementById('col-teams');
-  container.innerHTML = '';
-  
-  if (chats.length === 0) {
-    container.innerHTML = '<div class="text-xs text-gray-400 text-center py-4 italic">Nenhum chat visível no Teams agora. Abra a aba de chat.</div>';
-    return;
-  }
+// Fechar
+document.getElementById('close-btn').addEventListener('click', () => {
+    window.parent.postMessage({ type: 'TEAMSFLOW_CLOSE' }, '*');
+});
 
-  chats.forEach(chat => {
-    const el = document.createElement('div');
-    el.className = 'bg-white p-4 rounded-xl shadow-sm border border-blue-100 card-drag hover:border-blue-300 transition-all';
-    el.draggable = true;
-    el.innerHTML = `
-      <div class="font-bold text-sm text-gray-800">${chat.title}</div>
-      <div class="text-xs text-gray-500 line-clamp-2 mt-1 italic">"${chat.content}"</div>
-      <div class="mt-2 text-[10px] text-blue-500 font-bold uppercase tracking-wider">Arraste para organizar</div>
-    `;
+// Inicialização
+async function init() {
+    const data = await chrome.storage.local.get(['tf_cards', 'tf_responses']);
+    state.cards = data.tf_cards || [];
+    state.responses = data.tf_responses || [];
+    renderAll();
     
-    el.ondragstart = (e) => {
-      e.dataTransfer.setData('chat_data', JSON.stringify(chat));
-    };
-    
-    container.appendChild(el);
-  });
+    // Solicita chats reais ao content.js
+    window.parent.postMessage({ type: 'TEAMSFLOW_GET_CHATS' }, '*');
 }
 
-function renderCards() {
-  ['todo', 'doing', 'done'].forEach(colId => {
-    const container = document.getElementById(`col-${colId}`);
-    container.innerHTML = '';
+// Escuta mensagens do Teams (content.js)
+window.addEventListener('message', (event) => {
+    if (event.data.type === 'TEAMSFLOW_CHATS_DATA') {
+        state.recentChats = event.data.chats;
+        renderRecentChats();
+    }
+});
+
+function renderAll() {
+    renderRecentChats();
+    renderKanban();
+    renderResponses();
+}
+
+function renderRecentChats() {
+    const list = document.getElementById('recent-list');
+    list.innerHTML = '';
     
-    cards.filter(c => c.columnId === colId).forEach(card => {
-      const el = document.createElement('div');
-      el.className = 'bg-white p-4 rounded-xl shadow-sm border relative group';
-      el.innerHTML = `
-        <button class="absolute top-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onclick="deleteCard('${card.id}')">✕</button>
-        <div class="font-bold text-sm text-gray-800">${card.title}</div>
-        <div class="text-xs text-gray-500 mt-1">${card.content}</div>
-        <div class="flex justify-between mt-3">
-           <button class="text-xs text-indigo-500 hover:underline" onclick="moveCard('${card.id}', 'prev')">←</button>
-           <button class="text-xs text-indigo-500 hover:underline" onclick="moveCard('${card.id}', 'next')">→</button>
-        </div>
-      `;
-      container.appendChild(el);
+    if (state.recentChats.length === 0) {
+        list.innerHTML = '<p class="empty-msg">Nenhum chat visível. Abra a aba de chat do Teams.</p>';
+        return;
+    }
+
+    state.recentChats.forEach(chat => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <h4>${chat.name}</h4>
+            <p>${chat.lastMsg || 'Sem mensagens recentes'}</p>
+            <div class="card-actions">
+                <button class="move-btn" onclick="moveToTodo('${chat.name}', '${chat.lastMsg}')">Mover para A Fazer →</button>
+            </div>
+        `;
+        list.appendChild(card);
     });
-  });
 }
 
-function renderResponses() {
-  const container = document.getElementById('responses-list');
-  container.innerHTML = '';
-  
-  responses.forEach(resp => {
-    const el = document.createElement('div');
-    el.className = 'bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center';
-    el.innerHTML = `
-      <div>
-        <div class="font-mono text-indigo-600 font-bold">${resp.trigger}</div>
-        <div class="text-sm text-gray-500 line-clamp-1">${resp.text}</div>
-      </div>
-      <button class="text-red-400 hover:text-red-600" onclick="deleteResponse('${resp.id}')">Remover</button>
-    `;
-    container.appendChild(el);
-  });
+window.moveToTodo = (name, lastMsg) => {
+    const newCard = {
+        id: Date.now().toString(),
+        columnId: 'todo',
+        title: name,
+        content: lastMsg,
+        createdAt: Date.now()
+    };
+    state.cards.push(newCard);
+    saveCards();
+    renderAll();
+};
+
+function renderKanban() {
+    ['todo', 'doing', 'done'].forEach(colId => {
+        const list = document.getElementById(`${colId}-list`);
+        list.innerHTML = '';
+        state.cards.filter(c => c.columnId === colId).forEach(card => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+                <h4>${card.title}</h4>
+                <p>${card.content}</p>
+                <div class="card-actions">
+                    <button class="move-btn" onclick="cycleCard('${card.id}')">Próximo</button>
+                    <button class="del-btn" onclick="deleteCard('${card.id}')">Excluir</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    });
 }
 
-// Funções globais expostas para os botões inline
+window.cycleCard = (id) => {
+    const card = state.cards.find(c => c.id === id);
+    if (card.columnId === 'todo') card.columnId = 'doing';
+    else if (card.columnId === 'doing') card.columnId = 'done';
+    else card.columnId = 'todo';
+    saveCards();
+    renderKanban();
+};
+
 window.deleteCard = (id) => {
-  cards = cards.filter(c => c.id !== id);
-  saveCards();
-};
-
-window.moveCard = (id, direction) => {
-  const card = cards.find(c => c.id === id);
-  const cols = ['todo', 'doing', 'done'];
-  let idx = cols.indexOf(card.columnId);
-  if (direction === 'prev' && idx > 0) idx--;
-  if (direction === 'next' && idx < cols.length - 1) idx++;
-  card.columnId = cols[idx];
-  saveCards();
-};
-
-window.deleteResponse = (id) => {
-  responses = responses.filter(r => r.id !== id);
-  saveResponses();
+    state.cards = state.cards.filter(c => c.id !== id);
+    saveCards();
+    renderKanban();
 };
 
 function saveCards() {
-  chrome.storage.local.set({ tf_cards: cards }, renderCards);
+    chrome.storage.local.set({ tf_cards: state.cards });
 }
 
-function saveResponses() {
-  chrome.storage.local.set({ tf_responses: responses }, renderResponses);
-}
-
-// Setup de Drag and Drop
-document.querySelectorAll('.kanban-drop').forEach(dropArea => {
-  dropArea.ondragover = (e) => e.preventDefault();
-  dropArea.ondrop = (e) => {
-    e.preventDefault();
-    const chatData = JSON.parse(e.dataTransfer.getData('chat_data'));
-    const targetCol = dropArea.dataset.column;
+// Respostas Rápidas
+document.getElementById('save-resp-btn').addEventListener('click', () => {
+    const trigger = document.getElementById('resp-trigger').value;
+    const text = document.getElementById('resp-text').value;
     
-    // Transforma chat em card persistente
-    const newCard = {
-      ...chatData,
-      id: 'card-' + Date.now(),
-      columnId: targetCol,
-      isNative: false
-    };
-    
-    cards.push(newCard);
-    saveCards();
-  };
+    if (trigger && text) {
+        state.responses.push({ id: Date.now().toString(), trigger, text });
+        chrome.storage.local.set({ tf_responses: state.responses });
+        document.getElementById('resp-trigger').value = '';
+        document.getElementById('resp-text').value = '';
+        renderResponses();
+    }
 });
 
-// Navegação de Tabs
-document.getElementById('tab-kanban').onclick = () => {
-  document.getElementById('kanban-view').classList.remove('hidden');
-  document.getElementById('responses-view').classList.add('hidden');
-  document.getElementById('tab-kanban').classList.add('bg-indigo-100', 'text-indigo-700');
-  document.getElementById('tab-responses').classList.remove('bg-indigo-100', 'text-indigo-700');
+function renderResponses() {
+    const grid = document.getElementById('responses-grid');
+    grid.innerHTML = '';
+    state.responses.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'response-card';
+        div.innerHTML = `
+            <code>${r.trigger}</code>
+            <p>${r.text}</p>
+            <button class="del-btn" onclick="deleteResponse('${r.id}')">Remover</button>
+        `;
+        grid.appendChild(div);
+    });
+}
+
+window.deleteResponse = (id) => {
+    state.responses = state.responses.filter(r => r.id !== id);
+    chrome.storage.local.set({ tf_responses: state.responses });
+    renderResponses();
 };
 
-document.getElementById('tab-responses').onclick = () => {
-  document.getElementById('kanban-view').classList.add('hidden');
-  document.getElementById('responses-view').classList.remove('hidden');
-  document.getElementById('tab-responses').classList.add('bg-indigo-100', 'text-indigo-700');
-  document.getElementById('tab-kanban').classList.remove('bg-indigo-100', 'text-indigo-700');
-};
-
-// Ações
-document.getElementById('close-btn').onclick = () => {
-  window.parent.postMessage({ type: 'TEAMSFLOW_CLOSE' }, '*');
-};
-
-document.getElementById('save-resp-btn').onclick = () => {
-  const trigger = document.getElementById('resp-trigger').value;
-  const text = document.getElementById('resp-text').value;
-  if (trigger && text) {
-    responses.push({ id: Date.now().toString(), trigger, text });
-    saveResponses();
-    document.getElementById('resp-trigger').value = '';
-    document.getElementById('resp-text').value = '';
-  }
-};
-
-loadData();
+init();

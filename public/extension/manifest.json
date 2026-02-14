@@ -3,7 +3,7 @@
   "manifest_version": 3,
   "name": "TeamsFlow",
   "version": "1.1",
-  "description": "Overlay de Kanban e Respostas Rápidas para Microsoft Teams",
+  "description": "Kanban e Respostas Rápidas para Microsoft Teams",
   "permissions": ["storage"],
   "action": {
     "default_popup": "index.html"
@@ -17,7 +17,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sidebar.html", "sidebar.js", "content.css"],
+      "resources": ["sidebar.html", "sidebar.js", "sidebar.css"],
       "matches": ["https://teams.microsoft.com/*"]
     }
   ]
