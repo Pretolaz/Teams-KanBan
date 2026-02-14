@@ -74,7 +74,7 @@ function createCardElement(card, isRecent = false) {
 // Ouve as conversas recentes enviadas pelo content.js
 window.addEventListener('message', (event) => {
   if (event.data.type === 'TF_RECENT_CHATS') {
-    const container = document.getElementById('recent-list');
+    const container = document.getElementById('list-recent');
     container.innerHTML = '';
     event.data.chats.forEach(chat => {
       container.appendChild(createCardElement(chat, true));
