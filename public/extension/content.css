@@ -1,71 +1,38 @@
-/* TeamsFlow Pro Styles */
-#tf-flow-menu {
+
+#tf-trigger {
   position: fixed;
-  bottom: 25px;
-  right: 25px;
-  z-index: 999999;
-}
-
-.tf-fab-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.tf-fab-main {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #6264A7; /* Teams Purple */
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: #4f46e5;
   color: white;
-  border: none;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  cursor: pointer;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.tf-fab-main:hover { transform: scale(1.1); }
-
-.tf-fab-options {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(20px);
-  transition: all 0.3s ease;
-}
-
-.tf-fab-container.active .tf-fab-options {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-.tf-fab-options button {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  border: none;
-  background: white;
-  color: #6264A7;
   font-weight: bold;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  font-size: 24px;
   cursor: pointer;
+  z-index: 9999999;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: transform 0.2s;
+}
+#tf-trigger:hover {
+  transform: scale(1.1);
+  background: #4338ca;
 }
 
-#tf-kanban-overlay, #tf-responses-overlay {
+#tf-iframe {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
   border: none;
-  z-index: 999998;
+  z-index: 9999998;
   background: rgba(0,0,0,0.4);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(4px);
 }
+
+.hidden { display: none !important; }
