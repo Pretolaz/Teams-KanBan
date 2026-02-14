@@ -2,11 +2,25 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { 
+  collection, 
+  addDoc, 
+  deleteDoc, 
+  doc, 
+  updateDoc, 
+  onSnapshot, 
+  query, 
+  where,
+  orderBy,
+  setDoc
+} from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
 
 export interface KanbanColumn {
   id: string;
   name: string;
   color: string;
+  order: number;
 }
 
 export interface KanbanCard {
@@ -15,7 +29,6 @@ export interface KanbanCard {
   title: string;
   content: string;
   priority: 'High' | 'Medium' | 'Low';
-  icon?: string;
   createdAt: number;
 }
 
@@ -26,77 +39,90 @@ export interface QuickResponse {
 }
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
-  { id: 'todo', name: 'A Fazer', color: '#673AB7' },
-  { id: 'doing', name: 'Em Progresso', color: '#FF9800' },
-  { id: 'done', name: 'Concluído', color: '#4CAF50' },
+  { id: 'todo', name: 'A Fazer', color: '#673AB7', order: 1 },
+  { id: 'doing', name: 'Em Progresso', color: '#FF9800', order: 2 },
+  { id: 'done', name: 'Concluído', color: '#4CAF50', order: 3 },
 ];
 
 export function useTeamsFlowStore() {
+  const db = useFirestore();
+  const { user } = useUser();
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [cards, setCards] = useState<KanbanCard[]>([]);
   const [responses, setResponses] = useState<QuickResponse[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
+  // Sync Columns
   useEffect(() => {
-    const savedColumns = localStorage.getItem('teamsflow_columns');
-    const savedCards = localStorage.getItem('teamsflow_cards');
-    const savedResponses = localStorage.getItem('teamsflow_responses');
-
-    setColumns(savedColumns ? JSON.parse(savedColumns) : DEFAULT_COLUMNS);
-    setCards(savedCards ? JSON.parse(savedCards) : []);
-    setResponses(savedResponses ? JSON.parse(savedResponses) : []);
-    setIsHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem('teamsflow_columns', JSON.stringify(columns));
+    if (!db || !user) {
+      setColumns(DEFAULT_COLUMNS);
+      setIsHydrated(true);
+      return;
     }
-  }, [columns, isHydrated]);
 
+    const q = query(collection(db, 'users', user.uid, 'columns'), orderBy('order'));
+    return onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as KanbanColumn));
+      setColumns(data.length > 0 ? data : DEFAULT_COLUMNS);
+      setIsHydrated(true);
+    });
+  }, [db, user]);
+
+  // Sync Cards
   useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem('teamsflow_cards', JSON.stringify(cards));
-    }
-  }, [cards, isHydrated]);
+    if (!db || !user) return;
+    const q = query(collection(db, 'users', user.uid, 'cards'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      setCards(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as KanbanCard)));
+    });
+  }, [db, user]);
 
+  // Sync Responses
   useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem('teamsflow_responses', JSON.stringify(responses));
-    }
-  }, [responses, isHydrated]);
+    if (!db || !user) return;
+    const q = collection(db, 'users', user.uid, 'responses');
+    return onSnapshot(q, (snapshot) => {
+      setResponses(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as QuickResponse)));
+    });
+  }, [db, user]);
 
-  const addColumn = (column: Omit<KanbanColumn, 'id'>) => {
-    setColumns([...columns, { ...column, id: Date.now().toString() }]);
+  const addColumn = async (column: Omit<KanbanColumn, 'id' | 'order'>) => {
+    if (!db || !user) return;
+    const newOrder = columns.length + 1;
+    await addDoc(collection(db, 'users', user.uid, 'columns'), { ...column, order: newOrder });
   };
 
-  const updateColumn = (id: string, updates: Partial<KanbanColumn>) => {
-    setColumns(columns.map(c => c.id === id ? { ...c, ...updates } : c));
+  const deleteColumn = async (id: string) => {
+    if (!db || !user) return;
+    await deleteDoc(doc(db, 'users', user.uid, 'columns', id));
   };
 
-  const deleteColumn = (id: string) => {
-    setColumns(columns.filter(c => c.id !== id));
-    setCards(cards.filter(c => c.columnId !== id));
+  const addCard = async (card: Omit<KanbanCard, 'id' | 'createdAt'>) => {
+    if (!db || !user) return;
+    await addDoc(collection(db, 'users', user.uid, 'cards'), { 
+      ...card, 
+      createdAt: Date.now() 
+    });
   };
 
-  const addCard = (card: Omit<KanbanCard, 'id' | 'createdAt'>) => {
-    setCards([...cards, { ...card, id: Date.now().toString(), createdAt: Date.now() }]);
+  const moveCard = async (cardId: string, columnId: string) => {
+    if (!db || !user) return;
+    await updateDoc(doc(db, 'users', user.uid, 'cards', cardId), { columnId });
   };
 
-  const moveCard = (cardId: string, columnId: string) => {
-    setCards(cards.map(c => c.id === cardId ? { ...c, columnId } : c));
+  const deleteCard = async (id: string) => {
+    if (!db || !user) return;
+    await deleteDoc(doc(db, 'users', user.uid, 'cards', id));
   };
 
-  const deleteCard = (id: string) => {
-    setCards(cards.filter(c => c.id !== id));
+  const addResponse = async (resp: Omit<QuickResponse, 'id'>) => {
+    if (!db || !user) return;
+    await addDoc(collection(db, 'users', user.uid, 'responses'), resp);
   };
 
-  const addResponse = (resp: Omit<QuickResponse, 'id'>) => {
-    setResponses([...responses, { ...resp, id: Date.now().toString() }]);
-  };
-
-  const deleteResponse = (id: string) => {
-    setResponses(responses.filter(r => r.id !== id));
+  const deleteResponse = async (id: string) => {
+    if (!db || !user) return;
+    await deleteDoc(doc(db, 'users', user.uid, 'responses', id));
   };
 
   return {
@@ -104,7 +130,6 @@ export function useTeamsFlowStore() {
     cards,
     responses,
     addColumn,
-    updateColumn,
     deleteColumn,
     addCard,
     moveCard,
