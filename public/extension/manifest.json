@@ -1,19 +1,17 @@
 
 {
   "manifest_version": 3,
-  "name": "TeamsFlow Extension",
+  "name": "TeamsFlow",
   "version": "1.0",
-  "description": "Produtividade para MS Teams: Kanban e Respostas Rápidas",
-  "permissions": ["storage", "activeTab"],
-  "action": {
-    "default_popup": "index.html"
-  },
+  "description": "Productivity tools for Microsoft Teams Web",
+  "permissions": ["storage"],
   "content_scripts": [
     {
-      "matches": ["https://teams.microsoft.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"]
+      "matches": ["https://teams.microsoft.com/*", "http://localhost:*/*"],
+      "js": ["content.js"]
     }
   ],
-  "host_permissions": ["https://teams.microsoft.com/*"]
+  "action": {
+    "default_popup": "popup.html"
+  }
 }

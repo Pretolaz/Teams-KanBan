@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Palette, Shield, Zap, Bell } from 'lucide-react';
+import { Palette, Shield, Zap, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function SettingsPage() {
-  const { isHydrated } = useTeamsFlowStore();
+  const { isHydrated, clearAllData } = useTeamsFlowStore();
 
   if (!isHydrated) return null;
 
@@ -20,6 +21,14 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold font-headline text-primary mb-2">Configurações</h1>
         <p className="text-muted-foreground">Personalize sua experiência com o TeamsFlow.</p>
       </div>
+
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertTitle className="text-blue-800">Sincronização Local</AlertTitle>
+        <AlertDescription className="text-blue-700">
+          Para que as respostas apareçam no Teams, mantenha esta aba aberta enquanto configura. A extensão captura os dados automaticamente do seu navegador.
+        </AlertDescription>
+      </Alert>
 
       <div className="grid gap-6">
         <Card>
@@ -51,32 +60,6 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-secondary" />
-              <CardTitle className="text-lg">Funcionalidades Inteligentes</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Sugestão Automática de Prioridade</Label>
-                <p className="text-sm text-muted-foreground">Usa GenAI para definir prioridade ao criar cards.</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto-resumo de Conversas</Label>
-                <p className="text-sm text-muted-foreground">Gera títulos concisos para cards automaticamente.</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-emerald-500" />
               <CardTitle className="text-lg">Privacidade e Dados</CardTitle>
             </div>
@@ -84,10 +67,14 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg">
               <p className="text-sm text-emerald-800">
-                <strong>Nota de Segurança:</strong> Todos os seus dados (Kanban e Gatilhos) são armazenados localmente no seu navegador. Nenhuma informação de conversa é enviada para nossos servidores, exceto quando você solicita explicitamente o processamento de IA.
+                <strong>Privacidade Total:</strong> Seus dados são salvos apenas no seu computador (LocalStorage e Chrome Storage). Nenhuma conversa ou configuração é enviada para servidores externos.
               </p>
             </div>
-            <Button variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-white">
+            <Button 
+              variant="outline" 
+              className="text-destructive border-destructive hover:bg-destructive hover:text-white"
+              onClick={clearAllData}
+            >
               Limpar Todos os Dados Locais
             </Button>
           </CardContent>
