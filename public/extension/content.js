@@ -1,45 +1,42 @@
-
-// Escuta mensagens do Dashboard para sincronizar dados
+// Escuta mensagens do Dashboard (se estiver aberto) para sincronizar dados
 window.addEventListener("message", (event) => {
-  if (event.data.type === 'TEAMSFLOW_SYNC') {
-    chrome.storage.local.set({ tf_data: event.data.data }, () => {
-      console.log('TeamsFlow: Dados sincronizados com a extensão!');
+  if (event.data && event.data.type === 'TEAMSFLOW_SYNC') {
+    chrome.storage.local.set({ 
+      'tf_data': event.data.data,
+      'last_sync': Date.now()
+    }, () => {
+      console.log('TeamsFlow: Dados sincronizados do Dashboard.');
     });
   }
 });
 
-// Função para buscar respostas salvas
-async function getQuickResponses() {
-  const result = await chrome.storage.local.get(['tf_data']);
-  return result.tf_data?.responses || [];
-}
-
-// Lógica de substituição de texto no chat do Teams
-document.addEventListener('input', async (e) => {
-  const target = e.target;
-  if (target.getAttribute('contenteditable') === 'true' || target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
-    const text = target.innerText || target.value;
-    const responses = await getQuickResponses();
-
-    responses.forEach(resp => {
-      if (text.includes(resp.trigger + ' ')) {
-        const newText = text.replace(resp.trigger + ' ', resp.text + ' ');
-        if (target.getAttribute('contenteditable') === 'true') {
-          target.innerText = newText;
-        } else {
-          target.value = newText;
-        }
+// Lógica de Substituição de Texto (Gatilhos /)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const activeElement = document.activeElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.getAttribute('contenteditable') === 'true')) {
+      const text = activeElement.innerText || activeElement.value || "";
+      
+      chrome.storage.local.get(['tf_data'], (result) => {
+        const responses = result.tf_data?.responses || [];
         
-        // Coloca o cursor no final
-        const range = document.createRange();
-        const sel = window.getSelection();
-        range.selectNodeContents(target);
-        range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
-      }
-    });
+        responses.forEach(resp => {
+          if (text.trim() === resp.trigger) {
+            if (activeElement.tagName === 'INPUT') {
+              activeElement.value = resp.text;
+            } else {
+              activeElement.innerText = resp.text;
+            }
+            console.log(`TeamsFlow: Gatilho ${resp.trigger} substituído.`);
+          }
+        });
+      });
+    }
   }
-});
+}, true);
 
-console.log('TeamsFlow: Extensão ativa no Teams Web.');
+// Injeta um pequeno indicador visual no Teams
+const badge = document.createElement('div');
+badge.className = 'teams-flow-badge';
+badge.innerText = 'TeamsFlow Ativo';
+document.body.appendChild(badge);

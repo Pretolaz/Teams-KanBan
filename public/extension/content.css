@@ -1,6 +1,22 @@
+/* Estilos injetados no Teams Web */
+.teams-flow-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #6264a7;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.8;
+}
 
-/* Estilos injetados no Teams */
-#teamsflow-save-btn:hover {
-  background-color: #5E35B1 !important;
-  transform: scale(1.05);
+.teams-flow-suggestion {
+    border: 2px solid #6264a7 !important;
+    background-color: #f3f2f1 !important;
 }
