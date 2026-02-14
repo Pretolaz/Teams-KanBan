@@ -1,10 +1,10 @@
 
 {
   "manifest_version": 3,
-  "name": "TeamsFlow Pro",
+  "name": "TeamsFlow",
   "version": "1.1",
-  "description": "Kanban e Respostas Rápidas nativos para MS Teams",
-  "permissions": ["storage", "activeTab"],
+  "description": "Kanban e Respostas Rápidas para Microsoft Teams",
+  "permissions": ["storage"],
   "action": {
     "default_popup": "index.html"
   },
@@ -17,7 +17,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sidebar.html", "sidebar.js", "sidebar.css", "logo.png"],
+      "resources": ["sidebar.html", "sidebar.js", "content.css"],
       "matches": ["https://teams.microsoft.com/*"]
     }
   ],

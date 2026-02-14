@@ -1,17 +1,32 @@
 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
   <meta charset="UTF-8">
-  <link rel="stylesheet" href="sidebar.css">
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 15px; background: #f4f4f9; color: #333; height: 100vh; display: flex; flex-col: column; }
+    h2 { font-size: 18px; color: #673AB7; margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
+    .btn-capture { background: #90FF31; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; }
+    .kanban-container { display: flex; gap: 10px; overflow-x: auto; flex: 1; padding-bottom: 20px; }
+    .column { background: #ebedef; border-radius: 8px; min-width: 250px; display: flex; flex-direction: column; max-height: 100%; }
+    .column-header { padding: 10px; font-weight: bold; border-bottom: 2px solid #ddd; display: flex; justify-content: space-between; }
+    .cards { flex: 1; overflow-y: auto; padding: 10px; }
+    .card { background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 4px solid #ccc; position: relative; }
+    .card-title { font-weight: bold; font-size: 13px; margin-bottom: 5px; display: block; }
+    .card-meta { font-size: 10px; color: #888; }
+    .card-actions { margin-top: 8px; display: flex; justify-content: space-between; }
+    .btn-icon { background: none; border: none; cursor: pointer; padding: 2px; font-size: 14px; }
+    .empty-state { text-align: center; color: #aaa; margin-top: 50px; font-size: 14px; }
+  </style>
 </head>
 <body>
-  <div class="actions">
-    <button id="add-chat">＋ Capturar Chat Atual</button>
-  </div>
-
-  <div id="board" class="kanban-board">
-    <!-- Colunas serão injetadas aqui -->
+  <h2>
+    TeamsFlow Kanban
+    <button id="btn-capture" class="btn-capture">+ Capturar Chat</button>
+  </h2>
+  
+  <div id="kanban" class="kanban-container">
+    <!-- Colunas serão inseridas aqui via JS -->
   </div>
 
   <script src="sidebar.js"></script>

@@ -1,42 +1,41 @@
-#teamsflow-toggle {
+
+#teamsflow-root-container {
   position: fixed;
+  z-index: 999999;
+  bottom: 20px;
   right: 20px;
-  bottom: 80px;
+  pointer-events: none;
+}
+
+#teamsflow-toggle-btn {
+  pointer-events: auto;
   width: 50px;
   height: 50px;
-  border-radius: 25px;
-  background-color: #673AB7;
+  background: #673AB7;
   color: white;
   border: none;
+  border-radius: 50%;
   font-weight: bold;
   font-size: 20px;
   cursor: pointer;
-  z-index: 999999;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
   transition: transform 0.2s;
 }
 
-#teamsflow-toggle:hover {
+#teamsflow-toggle-btn:hover {
   transform: scale(1.1);
-  background-color: #5E35B1;
+  background: #5E35B1;
 }
 
-#teamsflow-container {
+#teamsflow-sidebar {
+  pointer-events: auto;
   position: fixed;
-  right: 0;
   top: 0;
-  bottom: 0;
+  right: 0;
   width: 450px;
-  background: white;
-  z-index: 999998;
-  box-shadow: -4px 0 12px rgba(0,0,0,0.1);
-  transform: translateX(100%);
-  transition: transform 0.3s ease;
-  border-left: 1px solid #ddd;
-}
-
-#teamsflow-iframe {
-  width: 100%;
-  height: 100%;
+  height: 100vh;
   border: none;
+  background: white;
+  box-shadow: -5px 0 25px rgba(0,0,0,0.2);
+  z-index: 999998;
 }
