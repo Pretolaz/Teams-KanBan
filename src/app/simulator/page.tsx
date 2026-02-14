@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Kanban, Send, Paperclip, Smile, MoreHorizontal } from 'lucide-react';
+import { Kanban, Send, Paperclip, Smile, MoreHorizontal, MessageSquareText } from 'lucide-react';
 import { summarizeConversationForKanbanCard } from '@/ai/flows/summarize-conversation-for-kanban-card';
 import { useToast } from '@/hooks/use-toast';
 
