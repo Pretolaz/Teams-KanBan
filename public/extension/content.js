@@ -1,94 +1,108 @@
+// TeamsFlow Pro - Content Script
+console.log("TeamsFlow Pro: Iniciado");
 
-/**
- * TeamsFlow - Content Script
- * Gerencia a injeção da UI e a lógica de respostas rápidas.
- */
+let isKanbanOpen = false;
+let isResponsesOpen = false;
 
-console.log('TeamsFlow: Content Script inicializado');
+// Função para injetar o menu de ações
+function injectFlowMenu() {
+  if (document.getElementById('tf-flow-menu')) return;
 
-let sidebarVisible = false;
+  const menu = document.createElement('div');
+  menu.id = 'tf-flow-menu';
+  menu.innerHTML = `
+    <div class="tf-fab-container">
+      <div class="tf-fab-options">
+        <button id="tf-btn-responses" title="Respostas Rápidas"><span>R</span></button>
+        <button id="tf-btn-kanban" title="Abrir Kanban"><span>K</span></button>
+      </div>
+      <button id="tf-fab-main" class="tf-fab-main">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M11 3v18"/><path d="M3 8h8"/><path d="M3 13h8"/><path d="M3 18h8"/><path d="M11 13h10"/></svg>
+      </button>
+    </div>
+  `;
+  document.body.appendChild(menu);
 
-// Injeção resiliente: verifica a cada 2 segundos se o botão existe
-const injectionInterval = setInterval(() => {
-  if (!document.getElementById('teamsflow-root-container')) {
-    init();
-  }
-}, 2000);
-
-function init() {
-  if (document.getElementById('teamsflow-root-container')) return;
-
-  const container = document.createElement('div');
-  container.id = 'teamsflow-root-container';
-  
-  // Botão Flutuante
-  const btn = document.createElement('button');
-  btn.id = 'teamsflow-toggle-btn';
-  btn.innerHTML = 'T';
-  btn.title = 'Abrir Kanban TeamsFlow';
-  btn.onclick = toggleSidebar;
-
-  // Iframe da Sidebar (Carrega arquivo LOCAL da extensão)
-  const iframe = document.createElement('iframe');
-  iframe.id = 'teamsflow-sidebar';
-  iframe.src = chrome.runtime.getURL('sidebar.html');
-  iframe.style.display = 'none';
-
-  container.appendChild(btn);
-  container.appendChild(iframe);
-  document.body.appendChild(container);
-  
-  console.log('TeamsFlow: UI Injetada com sucesso');
-  setupQuickResponses();
+  document.getElementById('tf-btn-kanban').onclick = toggleKanban;
+  document.getElementById('tf-btn-responses').onclick = toggleResponses;
+  document.getElementById('tf-fab-main').onclick = () => {
+    document.querySelector('.tf-fab-container').classList.toggle('active');
+  };
 }
 
-function toggleSidebar() {
-  const iframe = document.getElementById('teamsflow-sidebar');
-  sidebarVisible = !sidebarVisible;
-  iframe.style.display = sidebarVisible ? 'block' : 'none';
-  
-  if (sidebarVisible) {
-    // Avisa a sidebar para atualizar os dados ao abrir
-    iframe.contentWindow.postMessage({ type: 'REFRESH_DATA' }, '*');
+function toggleKanban() {
+  isKanbanOpen = !isKanbanOpen;
+  if (isKanbanOpen) {
+    const overlay = document.createElement('iframe');
+    overlay.id = 'tf-kanban-overlay';
+    overlay.src = chrome.runtime.getURL('kanban.html');
+    document.body.appendChild(overlay);
+    // Envia os chats recentes para o iframe assim que carregar
+    overlay.onload = () => {
+      const chats = scrapeRecentChats();
+      overlay.contentWindow.postMessage({ type: 'TF_RECENT_CHATS', chats }, '*');
+    };
+  } else {
+    document.getElementById('tf-kanban-overlay')?.remove();
   }
 }
 
-// Lógica de Respostas Rápidas
-function setupQuickResponses() {
-  document.addEventListener('input', (e) => {
-    const target = e.target;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-      const text = target.value || target.innerText || '';
-      if (text.includes('/')) {
-        chrome.storage.local.get(['tf_responses'], (result) => {
-          const responses = result.tf_responses || [];
-          responses.forEach(resp => {
-            if (text.endsWith(resp.trigger)) {
-              const newVal = text.replace(resp.trigger, resp.text);
-              if (target.value !== undefined) target.value = newVal;
-              else target.innerText = newVal;
-              
-              // Dispara evento de input para o Teams perceber a mudança
-              target.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-          });
-        });
-      }
-    }
+function toggleResponses() {
+  isResponsesOpen = !isResponsesOpen;
+  if (isResponsesOpen) {
+    const overlay = document.createElement('iframe');
+    overlay.id = 'tf-responses-overlay';
+    overlay.src = chrome.runtime.getURL('responses.html');
+    document.body.appendChild(overlay);
+  } else {
+    document.getElementById('tf-responses-overlay')?.remove();
+  }
+}
+
+// Scraper de conversas reais do Teams
+function scrapeRecentChats() {
+  const chatElements = document.querySelectorAll('[data-tid="chat-list-item"]');
+  const chats = [];
+  chatElements.forEach((el, index) => {
+    if (index > 10) return; // Limita aos 10 primeiros
+    const name = el.querySelector('[class*="title"]')?.innerText || "Contato";
+    const msg = el.querySelector('[class*="message"]')?.innerText || "Sem mensagens";
+    const url = window.location.href; // Simplificado: usa a URL atual
+    chats.push({ id: `recent-${index}`, name, lastMessage: msg, url });
   });
+  return chats;
 }
 
-// Comunicação: Recebe pedidos da Sidebar (ex: pegar contexto do chat)
+// Listener para fechar overlays e outras comunicações
 window.addEventListener('message', (event) => {
-  if (event.data.type === 'GET_TEAMS_CONTEXT') {
-    const chatTitle = document.querySelector('[data-tid="chat-list-item-active"] .name-content') || 
-                      document.querySelector('.chat-header-title') || 
-                      { innerText: 'Conversa Desconhecida' };
-    
-    event.source.postMessage({
-      type: 'TEAMS_CONTEXT_RESPONSE',
-      title: chatTitle.innerText.trim(),
-      url: window.location.href
-    }, '*');
+  if (event.data.type === 'TF_CLOSE_KANBAN') toggleKanban();
+  if (event.data.type === 'TF_CLOSE_RESPONSES') toggleResponses();
+});
+
+// Monitor de digitação para Respostas Rápidas
+document.addEventListener('input', (e) => {
+  const target = e.target;
+  if (target.tagName === 'DIV' && target.getAttribute('contenteditable') === 'true') {
+    const text = target.innerText;
+    if (text.includes('/')) {
+      chrome.storage.local.get(['responses'], (result) => {
+        const responses = result.responses || [];
+        responses.forEach(r => {
+          if (text.endsWith(r.trigger)) {
+            const newText = text.replace(r.trigger, r.text);
+            target.innerText = newText;
+            // Posiciona o cursor no final
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(target);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        });
+      });
+    }
   }
 });
+
+setInterval(injectFlowMenu, 2000);

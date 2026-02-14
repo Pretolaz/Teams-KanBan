@@ -1,41 +1,71 @@
-
-#teamsflow-root-container {
+/* TeamsFlow Pro Styles */
+#tf-flow-menu {
   position: fixed;
+  bottom: 25px;
+  right: 25px;
   z-index: 999999;
-  bottom: 20px;
-  right: 20px;
-  pointer-events: none;
 }
 
-#teamsflow-toggle-btn {
-  pointer-events: auto;
-  width: 50px;
-  height: 50px;
-  background: #673AB7;
+.tf-fab-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.tf-fab-main {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #6264A7; /* Teams Purple */
   color: white;
   border: none;
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 20px;
-  cursor: pointer;
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  transition: transform 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-#teamsflow-toggle-btn:hover {
-  transform: scale(1.1);
-  background: #5E35B1;
+.tf-fab-main:hover { transform: scale(1.1); }
+
+.tf-fab-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
 }
 
-#teamsflow-sidebar {
+.tf-fab-container.active .tf-fab-options {
+  opacity: 1;
   pointer-events: auto;
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 450px;
-  height: 100vh;
+  transform: translateY(0);
+}
+
+.tf-fab-options button {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
   border: none;
   background: white;
-  box-shadow: -5px 0 25px rgba(0,0,0,0.2);
+  color: #6264A7;
+  font-weight: bold;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+#tf-kanban-overlay, #tf-responses-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  border: none;
   z-index: 999998;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
 }

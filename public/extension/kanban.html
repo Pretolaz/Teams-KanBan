@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --primary: #6264A7;
+      --bg: #f5f5f5;
+      --card: #ffffff;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+      color: #333;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .header h1 { margin: 0; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .close-btn {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .close-btn:hover { background: rgba(255,255,255,0.3); }
+    
+    .board {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+      overflow-x: auto;
+      padding-bottom: 20px;
+    }
+    .column {
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(10px);
+      width: 320px;
+      min-width: 320px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    .column-header {
+      padding: 15px;
+      font-weight: bold;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+    }
+    .cards-container {
+      padding: 10px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      cursor: grab;
+      border-left: 4px solid var(--primary);
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); }
+    .card h4 { margin: 0 0 5px 0; font-size: 14px; }
+    .card p { margin: 0; font-size: 12px; color: #666; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .card .date { font-size: 10px; color: #999; margin-top: 8px; display: block; }
+    
+    .column-recent { background: rgba(98, 100, 167, 0.1); border: 1px dashed rgba(255,255,255,0.5); }
+    .column-recent .card { border-left-color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>TeamsFlow Kanban</h1>
+    <button class="close-btn" id="close-btn">Fechar [X]</button>
+  </div>
+  
+  <div class="board">
+    <div class="column column-recent" id="col-recent">
+      <div class="column-header">Conversas Recentes</div>
+      <div class="cards-container" id="recent-list"></div>
+    </div>
+    <div class="column" id="col-todo">
+      <div class="column-header">A Fazer</div>
+      <div class="cards-container" id="todo-list"></div>
+    </div>
+    <div class="column" id="col-doing">
+      <div class="column-header">Em Progresso</div>
+      <div class="cards-container" id="doing-list"></div>
+    </div>
+    <div class="column" id="col-done">
+      <div class="column-header">Concluído</div>
+      <div class="cards-container" id="done-list"></div>
+    </div>
+  </div>
+
+  <script src="kanban.js"></script>
+</body>
+</html>
