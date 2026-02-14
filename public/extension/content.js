@@ -1,123 +1,114 @@
+
 console.log("TeamsFlow: Motor de produtividade ativo.");
 
-let overlayVisible = false;
+let overlay = null;
 
-// 1. Injeção do Botão Acionador (Mais resiliente)
+// Tenta injetar o botão de acesso
 function injectTrigger() {
-    if (document.getElementById('teamsflow-trigger')) return;
+  if (document.getElementById('tf-trigger')) return;
 
-    const btn = document.createElement('div');
-    btn.id = 'teamsflow-trigger';
-    btn.innerHTML = 'T';
-    Object.assign(btn.style, {
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        width: '50px',
-        height: '50px',
-        backgroundColor: '#673AB7',
-        color: 'white',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        zIndex: '999999',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-        fontWeight: 'bold',
-        fontSize: '20px',
-        border: '2px solid white'
-    });
+  const btn = document.createElement('div');
+  btn.id = 'tf-trigger';
+  btn.innerHTML = `
+    <div style="width:50px; height:50px; background:#6264A7; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;">
+      T
+    </div>
+  `;
+  btn.style.cssText = "position:fixed; bottom:20px; right:20px; z-index:9999999;";
+  
+  btn.onclick = () => toggleOverlay();
+  btn.onmouseover = () => btn.firstElementChild.style.transform = "scale(1.1)";
+  btn.onmouseout = () => btn.firstElementChild.style.transform = "scale(1)";
 
-    btn.onclick = toggleOverlay;
-    document.documentElement.appendChild(btn);
+  (document.body || document.documentElement).appendChild(btn);
 }
 
-// 2. Injeção do Iframe Overlay (Tamanho total)
 function toggleOverlay() {
-    let iframe = document.getElementById('teamsflow-iframe');
-    overlayVisible = !overlayVisible;
-
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'teamsflow-iframe';
-        iframe.src = chrome.runtime.getURL('sidebar.html');
-        Object.assign(iframe.style, {
-            position: 'fixed',
-            inset: '0',
-            width: '100vw',
-            height: '100vh',
-            border: 'none',
-            zIndex: '999998',
-            display: 'none',
-            transition: 'opacity 0.3s'
-        });
-        document.documentElement.appendChild(iframe);
-    }
-
-    iframe.style.display = overlayVisible ? 'block' : 'none';
-    if (overlayVisible) scrapeChats();
+  if (overlay) {
+    overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+  } else {
+    createOverlay();
+  }
 }
 
-// 3. Scraper de Chats (Específico para Teams V2)
-function scrapeChats() {
-    // Procura por itens na lista de chat lateral
-    const chatItems = document.querySelectorAll('[data-tid="chat-list-item"], .chat-list-item, [role="listitem"]');
-    const chats = Array.from(chatItems).map(item => {
-        const nameEl = item.querySelector('[data-tid="chat-list-item-title"], .chat-list-item-title, h3, span');
-        const msgEl = item.querySelector('.last-message, [data-tid="last-message-body"]');
-        return {
-            name: nameEl ? nameEl.innerText.trim() : "Contato Desconhecido",
-            lastMessage: msgEl ? msgEl.innerText.trim() : "Sem mensagens recentes"
-        };
-    }).filter(c => c.name !== "");
-
-    const iframe = document.getElementById('teamsflow-iframe');
-    if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: 'TEAMSFLOW_CHATS_DATA', chats }, '*');
-    }
+function createOverlay() {
+  overlay = document.createElement('div');
+  overlay.id = 'tf-overlay';
+  overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000000; border:none;";
+  
+  const iframe = document.createElement('iframe');
+  iframe.src = chrome.runtime.getURL('sidebar.html');
+  iframe.style.cssText = "width:100%; height:100%; border:none;";
+  
+  overlay.appendChild(iframe);
+  document.body.appendChild(overlay);
 }
 
-// 4. Atalhos de Resposta Rápida
-document.addEventListener('input', async (e) => {
-    const target = e.target;
-    if (target.getAttribute('contenteditable') === 'true' || target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
-        const text = target.innerText || target.value;
-        const lastWord = text.split(/\s/).pop();
-
-        if (lastWord.startsWith('/')) {
-            const data = await chrome.storage.local.get('tf_responses');
-            const match = (data.tf_responses || []).find(r => r.trigger === lastWord);
-            
-            if (match) {
-                const newText = text.replace(lastWord, match.text);
-                if (target.getAttribute('contenteditable') === 'true') {
-                    target.innerText = newText;
-                } else {
-                    target.value = newText;
-                }
-                // Move o cursor para o fim
-                const range = document.createRange();
-                const sel = window.getSelection();
-                range.selectNodeContents(target);
-                range.collapse(false);
-                sel.removeAllRanges();
-                sel.addRange(range);
-            }
-        }
+// Scraper de Chats - Teams V2 (Seletores baseados em atributos funcionais)
+function scrapeTeamsChats() {
+  const chats = [];
+  // Procura por itens que tenham o texto do nome e o texto da mensagem
+  const chatElements = document.querySelectorAll('[data-tid="chat-list-item"], [role="listitem"]');
+  
+  chatElements.forEach((el, index) => {
+    // Busca o nome (geralmente em um elemento com dir="auto")
+    const titleEl = el.querySelector('[dir="auto"], h3, span[class*="title"]');
+    // Busca a última mensagem
+    const snippetEl = el.querySelector('[class*="snippet"], [class*="message"], span[class*="content"]');
+    
+    if (titleEl && titleEl.innerText.trim()) {
+      chats.push({
+        id: `teams-chat-${index}`,
+        title: titleEl.innerText.trim(),
+        content: snippetEl ? snippetEl.innerText.trim() : "Sem visualização",
+        url: window.location.href
+      });
     }
-});
+  });
+  
+  return chats;
+}
 
-// 5. Escuta de eventos do Iframe
+// Listener para comandos vindos do Iframe
 window.addEventListener('message', (event) => {
-    if (event.data.type === 'TEAMSFLOW_CLOSE') {
-        toggleOverlay();
+  if (event.data.type === 'TF_CLOSE') {
+    if (overlay) overlay.style.display = 'none';
+  }
+  
+  if (event.data.type === 'TF_GET_CHATS') {
+    const chats = scrapeTeamsChats();
+    // Retorna os dados para o Iframe
+    const iframe = document.querySelector('#tf-overlay iframe');
+    if (iframe) {
+      iframe.contentWindow.postMessage({ type: 'TF_CHATS_DATA', chats }, '*');
     }
-    if (event.data.type === 'TEAMSFLOW_GET_CHATS') {
-        scrapeChats();
-    }
+  }
 });
 
-// Tentar injetar a cada 2 segundos caso o Teams remova
+// Auto-Replace de Respostas Rápidas
+document.addEventListener('input', (e) => {
+  const target = e.target;
+  if (target.getAttribute('contenteditable') === 'true' || target.tagName === 'TEXTAREA') {
+    const text = target.innerText || target.value;
+    
+    chrome.storage.local.get(['tf_responses'], (result) => {
+      const responses = result.tf_responses || [];
+      responses.forEach(resp => {
+        // Se o texto termina com o gatilho + espaço
+        if (text.endsWith(resp.trigger + ' ')) {
+          const newText = text.replace(resp.trigger + ' ', resp.text);
+          if (target.getAttribute('contenteditable') === 'true') {
+            target.innerText = newText;
+          } else {
+            target.value = newText;
+          }
+          // Move o cursor para o fim (opcional, mas recomendado)
+        }
+      });
+    });
+  }
+});
+
+// Mantém o botão vivo
 setInterval(injectTrigger, 2000);
 injectTrigger();

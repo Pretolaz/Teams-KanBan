@@ -1,70 +1,93 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="sidebar.css">
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
-    <div class="overlay">
-        <header>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="background: #fff; color: #673AB7; padding: 5px 10px; border-radius: 6px; font-weight: bold;">TF</div>
-                <h2 id="view-title">Board Kanban</h2>
-            </div>
-            <div class="nav-buttons">
-                <button id="btn-kanban" class="active">K</button>
-                <button id="btn-responses">R</button>
-                <button id="btn-close" style="background: #ff4444;">Voltar para o Teams</button>
-            </div>
-        </header>
+  <div class="overlay">
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="logo">
+          <div class="logo-icon">T</div>
+          <h1>TeamsFlow</h1>
+        </div>
+        <div class="nav-tabs">
+          <button id="btn-kanban" class="tab active">Kanban</button>
+          <button id="btn-responses" class="tab">Respostas</button>
+        </div>
+        <button id="close-sidebar" class="close-btn">&times;</button>
+      </header>
 
-        <!-- View Kanban -->
-        <main id="view-kanban" class="kanban-container">
-            <div class="column" id="col-recent">
-                <div class="column-header">
-                    <span>Conversas Recentes</span>
-                    <span style="font-size: 0.7rem; color: #673AB7;">(Arraste p/ organizar)</span>
-                </div>
-                <div class="card-list" id="list-recent">
-                    <p style="text-align:center; padding: 20px; color: #666; font-size: 0.8rem;">Carregando chats...</p>
-                </div>
+      <!-- Kanban View -->
+      <div id="view-kanban" class="view active">
+        <div class="kanban-board">
+          <!-- Coluna 1: Chats Recentes (Automática) -->
+          <div class="column" id="col-recent">
+            <div class="column-header">
+              <h2>Conversas Recentes</h2>
+              <span class="badge" id="count-recent">0</span>
             </div>
+            <div class="card-list" id="list-recent">
+              <div class="empty-state">Buscando chats...</div>
+            </div>
+          </div>
 
-            <div class="column" id="col-todo">
-                <div class="column-header">A Fazer</div>
-                <div class="card-list" id="list-todo"></div>
+          <!-- Coluna 2: A Fazer -->
+          <div class="column" id="col-todo">
+            <div class="column-header" style="border-top: 4px solid #673AB7">
+              <h2>A Fazer</h2>
+              <span class="badge" id="count-todo">0</span>
             </div>
+            <div class="card-list dropzone" data-col="todo"></div>
+          </div>
 
-            <div class="column" id="col-doing">
-                <div class="column-header">Em Progresso</div>
-                <div class="card-list" id="list-doing"></div>
+          <!-- Coluna 3: Em Progresso -->
+          <div class="column" id="col-doing">
+            <div class="column-header" style="border-top: 4px solid #FF9800">
+              <h2>Em Progresso</h2>
+              <span class="badge" id="count-doing">0</span>
             </div>
+            <div class="card-list dropzone" data-col="doing"></div>
+          </div>
 
-            <div class="column" id="col-done">
-                <div class="column-header">Concluído</div>
-                <div class="card-list" id="list-done"></div>
+          <!-- Coluna 4: Concluído -->
+          <div class="column" id="col-done">
+            <div class="column-header" style="border-top: 4px solid #4CAF50">
+              <h2>Concluído</h2>
+              <span class="badge" id="count-done">0</span>
             </div>
-        </main>
+            <div class="card-list dropzone" data-col="done"></div>
+          </div>
+        </div>
+      </div>
 
-        <!-- View Respostas -->
-        <main id="view-responses" class="responses-container hidden">
-            <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-                <div class="form-group">
-                    <label>Gatilho (comece com /)</label>
-                    <input type="text" id="resp-trigger" placeholder="/exemplo">
-                </div>
-                <div class="form-group">
-                    <label>Texto Completo</label>
-                    <textarea id="resp-text" rows="4" placeholder="Digite a resposta completa aqui..."></textarea>
-                </div>
-                <button id="save-response" class="btn-primary">Salvar Resposta</button>
+      <!-- Responses View -->
+      <div id="view-responses" class="view">
+        <div class="responses-container">
+          <div class="response-form card">
+            <h3>Nova Resposta Rápida</h3>
+            <div class="input-group">
+              <label>Gatilho (ex: /ola)</label>
+              <input type="text" id="resp-trigger" placeholder="/comando">
             </div>
-
-            <div id="responses-list" style="margin-top: 2rem;">
-                <!-- Itens injetados via JS -->
+            <div class="input-group">
+              <label>Texto da Resposta</label>
+              <textarea id="resp-text" placeholder="Texto que será inserido..."></textarea>
             </div>
-        </main>
+            <button id="save-response" class="primary-btn">Salvar Resposta</button>
+          </div>
+          
+          <div class="response-list-section">
+            <h3>Seus Atalhos</h3>
+            <div id="response-list" class="grid-list"></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <script src="sidebar.js"></script>
+  </div>
+  <script src="sidebar.js"></script>
 </body>
 </html>

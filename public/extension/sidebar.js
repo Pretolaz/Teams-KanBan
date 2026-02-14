@@ -1,155 +1,163 @@
-// Gerenciamento de Estado
-let cards = [];
-let responses = [];
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', async () => {
-    const data = await chrome.storage.local.get(['tf_cards', 'tf_responses']);
-    cards = data.tf_cards || [];
-    responses = data.tf_responses || [];
-    
-    renderKanban();
-    renderResponses();
-
-    // Ouvir mensagens do content.js (Scraper)
-    window.addEventListener('message', (event) => {
-        if (event.data.type === 'TEAMSFLOW_CHATS_DATA') {
-            updateRecentChats(event.data.chats);
-        }
-    });
-
-    // Solicitar chats iniciais
-    window.parent.postMessage({ type: 'TEAMSFLOW_GET_CHATS' }, '*');
-});
-
-// Navegação
-document.getElementById('btn-kanban').onclick = () => switchView('kanban');
-document.getElementById('btn-responses').onclick = () => switchView('responses');
-document.getElementById('btn-close').onclick = () => {
-    window.parent.postMessage({ type: 'TEAMSFLOW_CLOSE' }, '*');
+let tfData = {
+  cards: [],
+  responses: []
 };
 
-function switchView(view) {
-    document.getElementById('view-kanban').classList.toggle('hidden', view !== 'kanban');
-    document.getElementById('view-responses').classList.toggle('hidden', view !== 'responses');
-    document.getElementById('btn-kanban').classList.toggle('active', view === 'kanban');
-    document.getElementById('btn-responses').classList.toggle('active', view === 'responses');
-    document.getElementById('view-title').innerText = view === 'kanban' ? 'Board Kanban' : 'Respostas Rápidas';
+let recentChats = [];
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+  setupEvents();
+  
+  // Solicita chats recentes ao content script
+  window.parent.postMessage({ type: 'TF_GET_CHATS' }, '*');
+});
+
+function loadData() {
+  chrome.storage.local.get(['tf_cards', 'tf_responses'], (result) => {
+    tfData.cards = result.tf_cards || [];
+    tfData.responses = result.tf_responses || [];
+    renderAll();
+  });
 }
 
-// Lógica de Kanban
-function renderKanban() {
-    const lists = ['todo', 'doing', 'done'];
-    lists.forEach(id => {
-        const el = document.getElementById(`list-${id}`);
-        el.innerHTML = '';
-        cards.filter(c => c.columnId === id).forEach(card => {
-            const cardEl = createCardElement(card);
-            el.appendChild(cardEl);
-        });
-        
-        el.ondragover = (e) => e.preventDefault();
-        el.ondrop = (e) => {
-            const cardData = JSON.parse(e.dataTransfer.getData('text/plain'));
-            moveCard(cardData.id, id, cardData);
-        };
-    });
-}
+function setupEvents() {
+  // Navegação
+  document.getElementById('btn-kanban').onclick = () => switchView('kanban');
+  document.getElementById('btn-responses').onclick = () => switchView('responses');
+  
+  // Fechar
+  document.getElementById('close-sidebar').onclick = () => {
+    window.parent.postMessage({ type: 'TF_CLOSE' }, '*');
+  };
 
-function updateRecentChats(chats) {
-    const list = document.getElementById('list-recent');
-    if (!chats || chats.length === 0) {
-        list.innerHTML = '<p style="text-align:center; padding: 20px; color: #666;">Nenhum chat visível. Abra a aba de chat do Teams.</p>';
-        return;
-    }
-    list.innerHTML = '';
-    chats.forEach(chat => {
-        const chatEl = document.createElement('div');
-        chatEl.className = 'card';
-        chatEl.draggable = true;
-        chatEl.innerHTML = `<h4>${chat.name}</h4><p>${chat.lastMessage}</p>`;
-        chatEl.ondragstart = (e) => {
-            e.dataTransfer.setData('text/plain', JSON.stringify({ 
-                id: 'temp-' + Date.now(), 
-                title: chat.name, 
-                content: chat.lastMessage,
-                isNew: true 
-            }));
-        };
-        list.appendChild(chatEl);
-    });
-}
-
-function createCardElement(card) {
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.draggable = true;
-    div.innerHTML = `
-        <div style="display:flex; justify-content:space-between;">
-            <h4>${card.title}</h4>
-            <button class="delete-btn" style="font-size: 0.8rem;">&times;</button>
-        </div>
-        <p>${card.content}</p>
-    `;
-    div.querySelector('.delete-btn').onclick = () => deleteCard(card.id);
-    div.ondragstart = (e) => {
-        e.dataTransfer.setData('text/plain', JSON.stringify(card));
-    };
-    return div;
-}
-
-async function moveCard(cardId, columnId, data) {
-    if (data.isNew) {
-        cards.push({ id: Math.random().toString(36).substr(2, 9), title: data.title, content: data.content, columnId });
-    } else {
-        cards = cards.map(c => c.id === cardId ? { ...c, columnId } : c);
-    }
-    await chrome.storage.local.set({ tf_cards: cards });
-    renderKanban();
-}
-
-async function deleteCard(id) {
-    cards = cards.filter(c => c.id !== id);
-    await chrome.storage.local.set({ tf_cards: cards });
-    renderKanban();
-}
-
-// Lógica de Respostas
-document.getElementById('save-response').onclick = async () => {
+  // Salvar Resposta
+  document.getElementById('save-response').onclick = () => {
     const trigger = document.getElementById('resp-trigger').value;
     const text = document.getElementById('resp-text').value;
     
-    if (!trigger.startsWith('/') || !text) {
-        alert('O gatilho deve começar com / e o texto não pode estar vazio.');
-        return;
+    if (trigger && text) {
+      const newResp = { id: Date.now().toString(), trigger, text };
+      tfData.responses.push(newResp);
+      chrome.storage.local.set({ tf_responses: tfData.responses }, () => {
+        document.getElementById('resp-trigger').value = '';
+        document.getElementById('resp-text').value = '';
+        renderResponses();
+      });
     }
+  };
 
-    const newResp = { id: Date.now().toString(), trigger, text };
-    responses.push(newResp);
-    await chrome.storage.local.set({ tf_responses: responses });
-    
-    document.getElementById('resp-trigger').value = '';
-    document.getElementById('resp-text').value = '';
-    renderResponses();
-};
+  // Drag and Drop (HTML5 Native)
+  document.addEventListener('dragstart', (e) => {
+    if (e.target.classList.contains('card')) {
+      e.dataTransfer.setData('cardId', e.target.dataset.id);
+      e.dataTransfer.setData('isRecent', e.target.dataset.recent === 'true');
+      e.dataTransfer.setData('title', e.target.querySelector('h4').innerText);
+      e.dataTransfer.setData('content', e.target.querySelector('p').innerText);
+    }
+  });
+
+  document.querySelectorAll('.dropzone').forEach(zone => {
+    zone.ondragover = (e) => e.preventDefault();
+    zone.ondrop = (e) => {
+      e.preventDefault();
+      const cardId = e.dataTransfer.getData('cardId');
+      const isRecent = e.dataTransfer.getData('isRecent') === 'true';
+      const colId = zone.dataset.col;
+
+      if (isRecent) {
+        // Criar novo card a partir de um chat recente
+        const newCard = {
+          id: Date.now().toString(),
+          columnId: colId,
+          title: e.dataTransfer.getData('title'),
+          content: e.dataTransfer.getData('content'),
+          priority: 'Medium'
+        };
+        tfData.cards.push(newCard);
+      } else {
+        // Mover card existente
+        tfData.cards = tfData.cards.map(c => c.id === cardId ? { ...c, columnId: colId } : c);
+      }
+      
+      chrome.storage.local.set({ tf_cards: tfData.cards }, renderKanban);
+    };
+  });
+}
+
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  document.getElementById(`btn-${view}`).classList.add('active');
+}
+
+// Ouvir mensagens do Content Script
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'TF_CHATS_DATA') {
+    recentChats = event.data.chats;
+    renderRecentChats();
+  }
+});
+
+function renderAll() {
+  renderKanban();
+  renderResponses();
+}
+
+function renderRecentChats() {
+  const list = document.getElementById('list-recent');
+  if (recentChats.length === 0) {
+    list.innerHTML = '<div class="empty-state">Nenhum chat detectado. Abra a aba de Chat do Teams.</div>';
+    return;
+  }
+
+  list.innerHTML = recentChats.map(chat => `
+    <div class="card" draggable="true" data-id="${chat.id}" data-recent="true">
+      <h4>${chat.title}</h4>
+      <p>${chat.content}</p>
+    </div>
+  `).join('');
+  document.getElementById('count-recent').innerText = recentChats.length;
+}
+
+function renderKanban() {
+  const columns = ['todo', 'doing', 'done'];
+  columns.forEach(colId => {
+    const list = document.querySelector(`.dropzone[data-col="${colId}"]`);
+    const filtered = tfData.cards.filter(c => c.columnId === colId);
+    list.innerHTML = filtered.map(card => `
+      <div class="card" draggable="true" data-id="${card.id}" data-recent="false">
+        <div style="display:flex; justify-content:space-between">
+          <h4>${card.title}</h4>
+          <button onclick="deleteCard('${card.id}')" style="background:none; border:none; color:red; cursor:pointer">&times;</button>
+        </div>
+        <p>${card.content}</p>
+      </div>
+    `).join('');
+    document.getElementById(`count-${colId}`).innerText = filtered.length;
+  });
+}
 
 function renderResponses() {
-    const list = document.getElementById('responses-list');
-    list.innerHTML = '';
-    responses.forEach(resp => {
-        const div = document.createElement('div');
-        div.className = 'response-item';
-        div.innerHTML = `
-            <div><strong>${resp.trigger}</strong>: ${resp.text.substring(0, 50)}...</div>
-            <button class="delete-btn" data-id="${resp.id}">&times;</button>
-        `;
-        div.querySelector('.delete-btn').onclick = () => deleteResponse(resp.id);
-        list.appendChild(div);
-    });
+  const list = document.getElementById('response-list');
+  list.innerHTML = tfData.responses.map(resp => `
+    <div class="resp-card">
+      <strong>${resp.trigger}</strong>
+      <p>${resp.text}</p>
+      <button class="delete-btn" onclick="deleteResponse('${resp.id}')">Excluir</button>
+    </div>
+  `).join('');
 }
 
-async function deleteResponse(id) {
-    responses = responses.filter(r => r.id !== id);
-    await chrome.storage.local.set({ tf_responses: responses });
-    renderResponses();
-}
+window.deleteCard = (id) => {
+  tfData.cards = tfData.cards.filter(c => c.id !== id);
+  chrome.storage.local.set({ tf_cards: tfData.cards }, renderKanban);
+};
+
+window.deleteResponse = (id) => {
+  tfData.responses = tfData.responses.filter(r => r.id !== id);
+  chrome.storage.local.set({ tf_responses: tfData.responses }, renderResponses);
+};
