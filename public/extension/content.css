@@ -1,22 +1,42 @@
-/* Estilos injetados no Teams Web */
-.teams-flow-badge {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #6264a7;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 20px;
-    font-family: 'Segoe UI', sans-serif;
-    font-size: 12px;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 9999;
-    pointer-events: none;
-    opacity: 0.8;
+#teamsflow-toggle {
+  position: fixed;
+  right: 20px;
+  bottom: 80px;
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  background-color: #673AB7;
+  color: white;
+  border: none;
+  font-weight: bold;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 999999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: transform 0.2s;
 }
 
-.teams-flow-suggestion {
-    border: 2px solid #6264a7 !important;
-    background-color: #f3f2f1 !important;
+#teamsflow-toggle:hover {
+  transform: scale(1.1);
+  background-color: #5E35B1;
+}
+
+#teamsflow-container {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 450px;
+  background: white;
+  z-index: 999998;
+  box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  border-left: 1px solid #ddd;
+}
+
+#teamsflow-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -17,6 +16,7 @@ export interface KanbanCard {
   content: string;
   priority: 'High' | 'Medium' | 'Low';
   createdAt: number;
+  teamsUrl?: string;
 }
 
 export interface QuickResponse {
@@ -37,30 +37,24 @@ export function useTeamsFlowStore() {
   const [responses, setResponses] = useState<QuickResponse[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Carregar dados iniciais do LocalStorage
   useEffect(() => {
     const savedColumns = localStorage.getItem('tf_columns');
     const savedCards = localStorage.getItem('tf_cards');
     const savedResponses = localStorage.getItem('tf_responses');
 
-    if (savedColumns) setColumns(JSON.parse(savedColumns));
-    else setColumns(DEFAULT_COLUMNS);
-
-    if (savedCards) setCards(JSON.parse(savedCards));
-    if (savedResponses) setResponses(JSON.parse(savedResponses));
-
+    setColumns(savedColumns ? JSON.parse(savedColumns) : DEFAULT_COLUMNS);
+    setCards(savedCards ? JSON.parse(savedCards) : []);
+    setResponses(savedResponses ? JSON.parse(savedResponses) : []);
     setIsHydrated(true);
   }, []);
 
-  // Salvar no LocalStorage e avisar a Extensão quando houver mudanças
   useEffect(() => {
     if (!isHydrated) return;
     localStorage.setItem('tf_columns', JSON.stringify(columns));
     localStorage.setItem('tf_cards', JSON.stringify(cards));
     localStorage.setItem('tf_responses', JSON.stringify(responses));
 
-    // Envia uma mensagem para que a extensão (se instalada) capture os dados
-    window.postMessage({ 
+    window.parent.postMessage({ 
       type: 'TEAMSFLOW_SYNC', 
       data: { columns, cards, responses } 
     }, "*");
@@ -113,7 +107,6 @@ export function useTeamsFlowStore() {
     setColumns(DEFAULT_COLUMNS);
     setCards([]);
     setResponses([]);
-    alert("Todos os dados locais foram apagados.");
   };
 
   return {

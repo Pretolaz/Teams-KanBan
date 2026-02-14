@@ -1,12 +1,11 @@
-
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTeamsFlowStore, KanbanCard } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, MoreVertical, Trash2, ArrowRight, ArrowLeft, BrainCircuit } from 'lucide-react';
+import { Plus, MoreVertical, Trash2, ArrowRight, ArrowLeft, BrainCircuit, ExternalLink, Capture } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,47 +13,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { aiPrioritizeKanbanTask } from '@/ai/flows/ai-prioritize-kanban-task';
 import { useToast } from '@/hooks/use-toast';
+import { useSearchParams } from 'next/navigation';
 
 export default function KanbanPage() {
-  const { columns, cards, addColumn, deleteColumn, moveCard, deleteCard, isHydrated } = useTeamsFlowStore();
-  const [newColName, setNewColName] = useState('');
+  const { columns, cards, addCard, deleteColumn, moveCard, deleteCard, isHydrated } = useTeamsFlowStore();
+  const [isCapturing, setIsCapturing] = useState(false);
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const isExtensionMode = searchParams.get('mode') === 'extension';
+
+  useEffect(() => {
+    const handleContext = (event: MessageEvent) => {
+      if (event.data.type === 'TEAMSFLOW_CONTEXT_RESPONSE') {
+        addCard({
+          columnId: 'todo',
+          title: `Conversa: ${event.data.context.title}`,
+          content: 'Resumo da conversa pendente...',
+          priority: 'Medium',
+          teamsUrl: event.data.context.url
+        });
+        setIsCapturing(false);
+        toast({ title: "Card Criado!", description: "Conversa capturada do Teams." });
+      }
+    };
+    window.addEventListener('message', handleContext);
+    return () => window.removeEventListener('message', handleContext);
+  }, [addCard, toast]);
 
   if (!isHydrated) return null;
 
-  const handleAddColumn = () => {
-    if (newColName) {
-      addColumn({ name: newColName, color: '#673AB7' });
-      setNewColName('');
-    }
-  };
-
-  const handleAIPrioritize = async (card: KanbanCard) => {
-    try {
-      const result = await aiPrioritizeKanbanTask({
-        conversationContent: card.content,
-        recentInteractionCount: 5 // Mock value
-      });
-      toast({
-        title: "Sugestão da IA",
-        description: `Prioridade sugerida: ${result.priority}. Motivo: ${result.reasoning}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao consultar a IA para priorização.",
-        variant: "destructive"
-      });
-    }
+  const handleCaptureConversation = () => {
+    setIsCapturing(true);
+    window.parent.postMessage({ type: 'TEAMSFLOW_GET_CONTEXT' }, '*');
   };
 
   const getPriorityColor = (p: string) => {
@@ -67,120 +58,79 @@ export default function KanbanPage() {
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <div className={`h-full flex flex-col space-y-4 ${isExtensionMode ? 'p-4 bg-white' : ''}`}>
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">Board Kanban</h1>
-          <p className="text-muted-foreground">Gerencie suas tarefas derivadas do Teams.</p>
+          <h1 className="text-xl font-bold text-primary">Board Kanban</h1>
+          {isExtensionMode && (
+             <Button 
+                size="sm" 
+                onClick={handleCaptureConversation} 
+                disabled={isCapturing}
+                className="mt-2 bg-accent text-accent-foreground"
+              >
+               <Plus className="w-3 h-3 mr-1" /> Capturar Chat
+             </Button>
+          )}
         </div>
-        
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Coluna
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Nova Coluna</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <Input 
-                placeholder="Nome da coluna" 
-                value={newColName}
-                onChange={(e) => setNewColName(e.target.value)}
-              />
-              <Button onClick={handleAddColumn} className="w-full">Criar</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      <div className="flex-1 overflow-x-auto pb-4">
-        <div className="flex gap-6 h-full min-w-max">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="flex gap-4 h-full">
           {columns.map((column) => (
-            <div key={column.id} className="w-80 flex flex-col gap-4">
-              <div className="flex items-center justify-between px-2">
+            <div key={column.id} className="w-72 flex flex-col gap-2 shrink-0">
+              <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: column.color }} />
-                  <h3 className="font-bold text-lg">{column.name}</h3>
-                  <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                  <h3 className="font-bold text-sm">{column.name}</h3>
+                  <Badge variant="secondary" className="text-[10px] h-4">
                     {cards.filter(c => c.columnId === column.id).length}
                   </Badge>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => deleteColumn(column.id)} className="text-destructive">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Remover Coluna
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
 
-              <div className="flex-1 bg-muted/40 rounded-xl p-3 space-y-3 min-h-[400px]">
+              <div className="flex-1 bg-muted/20 rounded-lg p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
                 {cards
                   .filter(c => c.columnId === column.id)
                   .map((card) => (
-                    <Card key={card.id} className="group shadow-sm hover:shadow-md transition-shadow">
-                      <CardHeader className="p-3 pb-0 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <Badge className={getPriorityColor(card.priority)}>
-                            {card.priority}
-                          </Badge>
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6"
-                              onClick={() => handleAIPrioritize(card)}
-                            >
-                              <BrainCircuit className="w-4 h-4 text-primary" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => deleteCard(card.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <CardTitle className="text-sm font-bold line-clamp-2">{card.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-2 text-xs text-muted-foreground">
-                        <p className="line-clamp-3 mb-4">{card.content}</p>
-                        <div className="flex justify-between items-center mt-auto border-t pt-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6"
-                            disabled={columns.indexOf(column) === 0}
-                            onClick={() => moveCard(card.id, columns[columns.indexOf(column) - 1].id)}
-                          >
-                            <ArrowLeft className="w-3 h-3" />
-                          </Button>
-                          <span className="text-[10px]">
-                            {new Date(card.createdAt).toLocaleDateString()}
-                          </span>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6"
-                            disabled={columns.indexOf(column) === columns.length - 1}
-                            onClick={() => moveCard(card.id, columns[columns.indexOf(column) + 1].id)}
-                          >
-                            <ArrowRight className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </CardContent>
+                    <Card key={card.id} className="p-2 shadow-sm border-l-4" style={{ borderLeftColor: column.color }}>
+                      <div className="flex justify-between items-start mb-2">
+                        <Badge className={`${getPriorityColor(card.priority)} text-[9px] px-1 h-4`}>
+                          {card.priority}
+                        </Badge>
+                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteCard(card.id)}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                      <h4 className="text-xs font-bold leading-tight">{card.title}</h4>
+                      {card.teamsUrl && (
+                        <a 
+                          href={card.teamsUrl} 
+                          target="_blank" 
+                          className="flex items-center gap-1 text-[10px] text-primary mt-2 hover:underline"
+                        >
+                          <ExternalLink className="w-2 h-2" /> Ir para conversa
+                        </a>
+                      )}
+                      <div className="flex justify-between mt-3 pt-2 border-t">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-5 w-5"
+                          disabled={columns.indexOf(column) === 0}
+                          onClick={() => moveCard(card.id, columns[columns.indexOf(column) - 1].id)}
+                        >
+                          <ArrowLeft className="w-2 h-2" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-5 w-5"
+                          disabled={columns.indexOf(column) === columns.length - 1}
+                          onClick={() => moveCard(card.id, columns[columns.indexOf(column) + 1].id)}
+                        >
+                          <ArrowRight className="w-2 h-2" />
+                        </Button>
+                      </div>
                     </Card>
                   ))}
               </div>
