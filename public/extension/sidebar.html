@@ -1,62 +1,52 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="sidebar.css">
+  <meta charset="UTF-8">
+  <title>TeamsFlow Sidebar</title>
+  <link rel="stylesheet" href="sidebar.css">
 </head>
-<body>
-    <div id="overlay">
-        <header class="main-header">
-            <div class="logo-area">
-                <div class="logo-icon">T</div>
-                <h1>TeamsFlow <span>v1.1</span></h1>
-            </div>
-            <nav class="tabs">
-                <button class="nav-btn active" data-tab="kanban">Kanban</button>
-                <button class="nav-btn" data-tab="responses">Respostas Rápidas</button>
-            </nav>
-            <button id="close-btn" class="close-btn">Voltar para o Teams</button>
-        </header>
-
-        <main id="tab-kanban" class="tab-content active">
-            <div class="kanban-board">
-                <div class="column" id="col-recent">
-                    <h2>Chats Recentes</h2>
-                    <div class="card-list" id="recent-list">
-                        <p class="empty-msg">Buscando chats ativos...</p>
-                    </div>
-                </div>
-                <div class="column" id="col-todo">
-                    <h2>A Fazer</h2>
-                    <div class="card-list" id="todo-list"></div>
-                </div>
-                <div class="column" id="col-doing">
-                    <h2>Em Progresso</h2>
-                    <div class="card-list" id="doing-list"></div>
-                </div>
-                <div class="column" id="col-done">
-                    <h2>Concluído</h2>
-                    <div class="card-list" id="done-list"></div>
-                </div>
-            </div>
-        </main>
-
-        <main id="tab-responses" class="tab-content">
-            <div class="responses-container">
-                <section class="response-form">
-                    <h3>Novo Gatilho</h3>
-                    <input type="text" id="resp-trigger" placeholder="/comando">
-                    <textarea id="resp-text" placeholder="Texto que será inserido no chat..."></textarea>
-                    <button id="save-resp-btn" class="primary-btn">Adicionar Resposta</button>
-                </section>
-                <section class="response-list">
-                    <h3>Suas Respostas</h3>
-                    <div id="responses-grid"></div>
-                </section>
-            </div>
-        </main>
+<body class="bg-slate-50 overflow-hidden">
+  <div id="app" class="h-screen flex flex-col p-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <h1 id="view-title" class="text-xl font-bold text-indigo-700">Board Kanban</h1>
+      <div class="flex gap-2">
+        <button id="btn-kanban" class="p-2 rounded bg-indigo-100 text-indigo-700 hover:bg-indigo-200">K</button>
+        <button id="btn-responses" class="p-2 rounded bg-slate-100 text-slate-700 hover:bg-slate-200">R</button>
+        <button id="btn-close" class="p-2 rounded bg-red-100 text-red-700 hover:bg-red-200">&times;</button>
+      </div>
     </div>
-    <script src="sidebar.js"></script>
+
+    <!-- Kanban View -->
+    <div id="kanban-view" class="flex-1 overflow-x-auto overflow-y-hidden flex gap-4">
+      <!-- Coluna 1: Chats Recentes -->
+      <div class="kanban-column w-64 shrink-0 bg-slate-200/50 rounded-lg p-3 flex flex-col border-t-4 border-indigo-500">
+        <h3 class="font-bold text-sm mb-3 flex justify-between">Chats Recentes <span id="count-recent" class="text-xs font-normal opacity-60">0</span></h3>
+        <div id="recent-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+      </div>
+      <!-- Coluna 2: A Fazer -->
+      <div class="kanban-column w-64 shrink-0 bg-slate-200/50 rounded-lg p-3 flex flex-col border-t-4 border-amber-500">
+        <h3 class="font-bold text-sm mb-3 flex justify-between">A Fazer <span id="count-todo" class="text-xs font-normal opacity-60">0</span></h3>
+        <div id="todo-list" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[50px]"></div>
+      </div>
+      <!-- Coluna 3: Em Progresso -->
+      <div class="kanban-column w-64 shrink-0 bg-slate-200/50 rounded-lg p-3 flex flex-col border-t-4 border-blue-500">
+        <h3 class="font-bold text-sm mb-3 flex justify-between">Em Progresso <span id="count-doing" class="text-xs font-normal opacity-60">0</span></h3>
+        <div id="doing-list" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[50px]"></div>
+      </div>
+    </div>
+
+    <!-- Responses View -->
+    <div id="responses-view" class="hidden flex-1 overflow-y-auto space-y-4">
+      <div class="bg-white p-4 rounded-lg shadow-sm border space-y-3">
+        <h2 class="font-bold text-sm">Novo Gatilho</h2>
+        <input type="text" id="resp-trigger" placeholder="/comando" class="w-full p-2 border rounded text-sm">
+        <textarea id="resp-text" placeholder="Resposta completa..." class="w-full p-2 border rounded text-sm h-24"></textarea>
+        <button id="btn-save-resp" class="w-full bg-indigo-600 text-white p-2 rounded text-sm font-bold hover:bg-indigo-700 transition-colors">Salvar Resposta</button>
+      </div>
+      <div id="responses-list" class="grid grid-cols-1 gap-3"></div>
+    </div>
+  </div>
+  <script src="sidebar.js"></script>
 </body>
 </html>
