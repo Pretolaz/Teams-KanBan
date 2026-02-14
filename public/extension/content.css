@@ -1,0 +1,6 @@
+
+/* Estilos injetados no Teams */
+#teamsflow-save-btn:hover {
+  background-color: #5E35B1 !important;
+  transform: scale(1.05);
+}
