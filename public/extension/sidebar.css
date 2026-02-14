@@ -1,0 +1,102 @@
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 15px;
+  background: #f3f2f1;
+  color: #242424;
+  font-size: 14px;
+}
+
+.actions {
+  margin-bottom: 15px;
+}
+
+#add-chat {
+  width: 100%;
+  padding: 10px;
+  background: #6264a7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#add-chat:hover {
+  background: #464775;
+}
+
+.kanban-board {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.column {
+  background: #edebe9;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.col-header {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.count {
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.card {
+  background: white;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,0.13), 0 0.3px 0.9px 0 rgba(0,0,0,0.11);
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.card-title {
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prio {
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: #eee;
+}
+
+.prio.High { background: #fde7e9; color: #a4262c; }
+.prio.Medium { background: #fff4ce; color: #843c00; }
+
+.delete-card {
+  background: none;
+  border: none;
+  color: #a4262c;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.link {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #6264a7;
+  text-decoration: none;
+}
+
+.link:hover { text-decoration: underline; }

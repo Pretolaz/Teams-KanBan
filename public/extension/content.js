@@ -1,92 +1,77 @@
+
 // TeamsFlow Content Script
-let sidebarVisible = false;
+console.log("TeamsFlow: Script carregado");
 
-// Injetar Botão de Acesso no Teams
-function injectTeamsFlowButton() {
-  if (document.getElementById('teamsflow-toggle')) return;
+// Injetar Botão Flutuante
+const btn = document.createElement('div');
+btn.id = 'teamsflow-trigger';
+btn.innerHTML = 'T';
+document.body.appendChild(btn);
 
-  const btn = document.createElement('button');
-  btn.id = 'teamsflow-toggle';
-  btn.innerHTML = 'T';
-  btn.title = 'Abrir Kanban TeamsFlow';
-  document.body.appendChild(btn);
+// Injetar Sidebar Container
+const sidebar = document.createElement('div');
+sidebar.id = 'teamsflow-sidebar';
+sidebar.innerHTML = `
+  <div class="tf-header">
+    <span>TeamsFlow Kanban</span>
+    <button id="tf-close">×</button>
+  </div>
+  <iframe id="tf-iframe" src="${chrome.runtime.getURL('sidebar.html')}"></iframe>
+`;
+document.body.appendChild(sidebar);
 
-  btn.addEventListener('click', toggleSidebar);
-}
-
-function toggleSidebar() {
-  sidebarVisible = !sidebarVisible;
-  const container = document.getElementById('teamsflow-container');
-  if (container) {
-    container.style.transform = sidebarVisible ? 'translateX(0)' : 'translateX(100%)';
-  }
-}
-
-// Injetar o Iframe do Dashboard
-function injectSidebar() {
-  if (document.getElementById('teamsflow-container')) return;
-
-  const container = document.createElement('div');
-  container.id = 'teamsflow-container';
-  
-  const iframe = document.createElement('iframe');
-  // Em produção, use a URL do seu site hospedado. Em dev, localhost:9002
-  iframe.src = 'http://localhost:9002/kanban?mode=extension';
-  iframe.id = 'teamsflow-iframe';
-  
-  container.appendChild(iframe);
-  document.body.appendChild(container);
-}
-
-// Escutar comandos de atalhos (/)
-document.addEventListener('input', (e) => {
-  if (e.target.tagName === 'DIV' && e.target.getAttribute('contenteditable') === 'true') {
-    const text = e.target.innerText;
-    chrome.storage.local.get(['tf_responses'], (result) => {
-      const responses = result.tf_responses || [];
-      responses.forEach(resp => {
-        if (text.includes(resp.trigger)) {
-          const newText = text.replace(resp.trigger, resp.text);
-          e.target.innerText = newText;
-          // Mover cursor para o fim
-          const range = document.createRange();
-          const sel = window.getSelection();
-          range.setStart(e.target.childNodes[0], e.target.innerText.length);
-          range.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(range);
-        }
-      });
-    });
-  }
+// Lógica de Abrir/Fechar
+btn.addEventListener('click', () => {
+  sidebar.classList.toggle('active');
 });
 
-// Comunicação entre Extensão e Iframe
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'tf-close') sidebar.classList.remove('active');
+});
+
+// Captura de Contexto do Teams
 window.addEventListener('message', (event) => {
-  if (event.data.type === 'TEAMSFLOW_SYNC') {
-    chrome.storage.local.set({ 
-      tf_columns: event.data.data.columns,
-      tf_cards: event.data.data.cards,
-      tf_responses: event.data.data.responses
-    });
-  }
-  
-  if (event.data.type === 'TEAMSFLOW_GET_CONTEXT') {
-    // Tenta capturar o nome do contato no Teams (seletor aproximado)
-    const chatTitle = document.querySelector('[data-tid="chat-title"]')?.innerText || 'Conversa sem nome';
-    const iframe = document.getElementById('teamsflow-iframe');
-    iframe.contentWindow.postMessage({ 
-      type: 'TEAMSFLOW_CONTEXT_RESPONSE', 
-      context: { title: chatTitle, url: window.location.href } 
-    }, '*');
+  if (event.data.type === 'TF_GET_TEAMS_DATA') {
+    // Tenta encontrar o nome do contato atual no Teams
+    const contactNameEl = document.querySelector('[data-tid="chat-title"], .chat-header-title, h1');
+    const contactName = contactNameEl ? contactNameEl.innerText : "Conversa Desconhecida";
+    
+    event.source.postMessage({
+      type: 'TF_TEAMS_DATA_RESPONSE',
+      data: {
+        title: contactName,
+        url: window.location.href
+      }
+    }, event.origin);
   }
 });
 
-// Inicialização
-const initInterval = setInterval(() => {
-  if (document.body) {
-    injectTeamsFlowButton();
-    injectSidebar();
-    clearInterval(initInterval);
+// Respostas Rápidas (Monitorar digitação)
+document.addEventListener('input', (e) => {
+  const target = e.target;
+  if (target.getAttribute('contenteditable') === 'true' || target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
+    const text = target.innerText || target.value;
+    if (text.includes('/')) {
+      chrome.storage.local.get(['tf_responses'], (result) => {
+        const responses = result.tf_responses || [];
+        responses.forEach(res => {
+          if (text.endsWith(res.trigger + ' ') || text.endsWith(res.trigger + '\n')) {
+            const newValue = text.replace(res.trigger, res.text);
+            if (target.getAttribute('contenteditable') === 'true') {
+              target.innerText = newValue;
+            } else {
+              target.value = newValue;
+            }
+            // Mover cursor para o fim
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(target);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        });
+      });
+    }
   }
-}, 1000);
+});
