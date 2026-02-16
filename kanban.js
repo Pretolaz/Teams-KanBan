@@ -1,8 +1,18 @@
 // TeamsFlow Pro - Kanban Logic
 let db = { cards: [] };
 
+// Auxiliar para verificar se o contexto ainda é válido
+function isContextValid() {
+  return typeof chrome !== 'undefined' && chrome.runtime && !!chrome.runtime.id;
+}
+
 function loadData() {
+  if (!isContextValid()) {
+    console.warn("TeamsFlow: Contexto inválido em loadData.");
+    return;
+  }
   chrome.storage.local.get(['cards'], (result) => {
+    if (chrome.runtime.lastError) return;
     db.cards = result.cards || [];
     renderBoard();
   });
@@ -87,6 +97,10 @@ function createCardElement(card, isRecent = false) {
 }
 
 function updateCardData(cardId, data) {
+  if (!isContextValid()) {
+    alert("A extensão foi atualizada. Por favor, atualize a página do Teams.");
+    return;
+  }
   db.cards = db.cards.map(c => c.id === cardId ? { ...c, ...data } : c);
   chrome.storage.local.set({ cards: db.cards });
 }
@@ -98,6 +112,10 @@ function updateCardData(cardId, data) {
 
   colEl.ondragover = (e) => e.preventDefault();
   colEl.ondrop = (e) => {
+    if (!isContextValid()) {
+      alert("A extensão foi atualizada. Por favor, atualize a página do Teams.");
+      return;
+    }
     const cardId = e.dataTransfer.getData('cardId');
     const isRecent = e.dataTransfer.getData('isRecent') === 'true';
 
@@ -148,13 +166,28 @@ window.addEventListener('message', (event) => {
 const btnReset = document.getElementById('btn-reset-kanban');
 if (btnReset) {
   btnReset.onclick = () => {
+    if (!isContextValid()) {
+      alert("A extensão foi atualizada. Por favor, atualize a página do Teams.");
+      return;
+    }
     if (confirm('Deseja realmente limpar as colunas "A Fazer", "Em Progresso" e "Concluído"? Os chats recentes não serão afetados.')) {
       db.cards = [];
-      chrome.storage.local.set({ cards: [] }, () => {
-        loadData();
-      });
+      try {
+        chrome.storage.local.set({ cards: [] }, () => {
+          if (chrome.runtime.lastError) {
+            console.error("Erro ao resetar:", chrome.runtime.lastError);
+            return;
+          }
+          console.log("TeamsFlow: Quadros resetados.");
+          loadData();
+        });
+      } catch (e) {
+        console.error("TeamsFlow: Falha crítica no reset.", e);
+        alert("Ocorreu um erro ao resetar. Tente atualizar a página.");
+      }
     }
   };
 }
 
 loadData();
+

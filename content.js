@@ -1,9 +1,24 @@
-// TeamsFlow Pro - Content Script
+// TeamsFlow Pro - Content Script v13
 let uiInjected = false;
+let responsesCache = [];
+
+function updateResponsesCache() {
+    try {
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+            chrome.storage.local.get(['responses'], (data) => {
+                if (chrome.runtime.lastError) return;
+                responsesCache = data.responses || [];
+                console.log(`TeamsFlow: Cache atualizado (${responsesCache.length} atalhos).`);
+            });
+        }
+    } catch (e) {
+        console.warn("TeamsFlow: Contexto invalidado.");
+    }
+}
 
 function injectUI() {
     if (uiInjected || !document.body) return;
-    console.log("TeamsFlow: Injetando componentes de UI...");
+    console.log("TeamsFlow: Injetando UI...");
 
     const sidebarFrame = document.createElement('iframe');
     sidebarFrame.src = chrome.runtime.getURL('sidebar.html');
@@ -25,23 +40,136 @@ function injectUI() {
         sidebarFrame.style.display = isHidden ? 'block' : 'none';
         if (sidebarFrame.style.display === 'block') {
             updateChats(sidebarFrame);
+            updateResponsesCache();
         }
     };
 
     window.addEventListener('message', (event) => {
-        if (event.data.type === 'TEAMSFLOW_CLOSE') {
-            sidebarFrame.style.display = 'none';
-        }
-        if (event.data.type === 'TEAMSFLOW_REQUEST_CHATS') {
-            updateChats(sidebarFrame);
-        }
+        if (event.data.type === 'TEAMSFLOW_CLOSE') sidebarFrame.style.display = 'none';
+        if (event.data.type === 'TEAMSFLOW_REQUEST_CHATS') updateChats(sidebarFrame);
         if (event.data.type === 'TEAMSFLOW_GOTO_CHAT') {
             navigateToChat(event.data.name);
+            sidebarFrame.style.display = 'none';
         }
     });
 
     uiInjected = true;
-    startDetectionLoop(sidebarFrame);
+    setupQuickReplies();
+}
+
+let isExpanding = false;
+
+function setupQuickReplies() {
+    console.log("TeamsFlow: Monitorando expansão v20 (The Infiltrator)...");
+
+    const syncToEditor = (el, text) => {
+        // Dispara eventos que o CKEditor/React monitoram para colagem
+        const dataTransfer = new DataTransfer();
+        dataTransfer.setData('text/plain', text);
+
+        const pasteEvent = new ClipboardEvent('paste', {
+            clipboardData: dataTransfer,
+            bubbles: true,
+            cancelable: true
+        });
+
+        el.dispatchEvent(pasteEvent);
+
+        // Garante que o input event seja disparado como 'insertFromPaste'
+        const inputEvent = new InputEvent('input', {
+            inputType: 'insertFromPaste',
+            data: text,
+            bubbles: true
+        });
+        el.dispatchEvent(inputEvent);
+    };
+
+    // Conjunto para evitar re-entrada na mesma execução
+    const activeExpansions = new Set();
+
+    const handleExpansion = (el) => {
+        if (isExpanding) return;
+
+        const selection = window.getSelection();
+        if (!selection || !selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer;
+        const offset = range.startOffset;
+
+        // Só processamos em nós de texto
+        if (node.nodeType !== Node.TEXT_NODE) return;
+
+        const textContent = node.textContent || "";
+        const textBeforeCursor = textContent.substring(0, offset);
+
+        responsesCache.forEach(resp => {
+            const trigger = resp.trigger;
+            // Limpeza de caracteres invisíveis (ZWSP) comuns no Teams
+            const cleanText = textBeforeCursor.replace(/\u200B/g, '');
+
+            if (cleanText.endsWith(trigger) && !activeExpansions.has(trigger)) {
+                console.log(`TeamsFlow: [MATCH] v28 corrigindo duplicação de "${trigger}"...`);
+
+                isExpanding = true;
+                activeExpansions.add(trigger);
+
+                try {
+                    const replacement = resp.text + " ";
+                    const triggerLen = trigger.length;
+
+                    // --- Passo 1: Selecionar o Gatilho ---
+                    const expandRange = document.createRange();
+                    const startPos = Math.max(0, offset - triggerLen);
+                    expandRange.setStart(node, startPos);
+                    expandRange.setEnd(node, offset);
+
+                    // Coloca o foco na seleção do gatilho
+                    selection.removeAllRanges();
+                    selection.addRange(expandRange);
+
+                    // --- Passo 2: Substituição via Simulação de Colagem ---
+                    // Em vez de deleteContents(), vamos deixar o evento de paste 
+                    // sobrescrever a seleção atual (que é o próprio gatilho).
+                    // Isso é o que um "colar" real faz e o CKEditor aceita melhor.
+                    syncToEditor(el, replacement);
+
+                    // --- Passo 3: Limpeza de Segurança ---
+                    // Se por algum motivo o editor duplicou (inseriu ao lado em vez de substituir)
+                    // fazemos uma limpeza manual rápida no próximo frame
+                    setTimeout(() => {
+                        const currentText = node.textContent;
+                        if (currentText.includes(trigger + resp.text)) {
+                            console.log("TeamsFlow: Detectada duplicação, limpando...");
+                            const badString = trigger + resp.text;
+                            node.textContent = currentText.replace(badString, resp.text + " ");
+                        }
+
+                        isExpanding = false;
+                        activeExpansions.delete(trigger);
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                    }, 500);
+
+                } catch (err) {
+                    console.error("TeamsFlow Error v28:", err);
+                    isExpanding = false;
+                    activeExpansions.delete(trigger);
+                }
+            }
+        });
+    };
+
+    ['input', 'keyup'].forEach(evtType => {
+        document.addEventListener(evtType, (e) => {
+            const el = e.target;
+            const isEditor = el && (
+                el.getAttribute('contenteditable') === 'true' ||
+                el.getAttribute('data-tid') === 'ckeditor' ||
+                el.closest('[contenteditable="true"]')
+            );
+            if (isEditor) handleExpansion(el);
+        }, true);
+    });
 }
 
 function updateChats(frame) {
@@ -49,92 +177,74 @@ function updateChats(frame) {
     frame.contentWindow.postMessage({ type: 'TF_RECENT_CHATS', chats: chats }, '*');
 }
 
-function startDetectionLoop(frame) {
-    setInterval(() => {
-        if (document.visibilityState === 'visible') {
-            const chats = getRecentChats();
-            frame.contentWindow.postMessage({ type: 'TF_RECENT_CHATS', chats: chats }, '*');
-        }
-    }, 5000);
-}
-
 function navigateToChat(name) {
-    console.log(`TeamsFlow: Recebida solicitação de navegação para: "${name}"`);
+    console.log(`TeamsFlow: Navegando para chat "${name}"...`);
 
-    // 1. Busca pelo título identificado pelo usuário
-    const titleSpans = Array.from(document.querySelectorAll('span[id^="title-chat-list-item_"]'));
-    const target = titleSpans.find(s => {
-        const spanText = s.textContent.trim().toLowerCase();
-        const searchName = name.trim().toLowerCase();
-        return spanText === searchName || spanText.includes(searchName);
+    // Seletores variados para garantir compatibilidade com Teams V2
+    const selectors = [
+        'span[id^="title-chat-list-item_"]',
+        '[data-tid*="chat-list-item-title"]',
+        '.fui-TreeItem__content',
+        '[role="treeitem"]'
+    ];
+
+    const elements = Array.from(document.querySelectorAll(selectors.join(',')));
+    const target = elements.find(el => {
+        const text = el.textContent.trim().toLowerCase();
+        return text && (text.includes(name.toLowerCase()) || name.toLowerCase().includes(text));
     });
 
     if (target) {
-        // 2. Busca o container clicável (adicionado TreeItem por conta da nova evidência)
-        const clickable = target.closest('[role="row"], [role="listitem"], [role="treeitem"], .fui-ListItem, .fui-TreeItem, [data-tid*="chat-list-item"]');
+        const clickable = target.closest('[role="row"], [role="listitem"], [role="treeitem"], .fui-ListItem, .fui-TreeItem') || target;
 
-        if (clickable) {
-            console.log("TeamsFlow: Elemento clicável (TreeItem) encontrado. Navegando...");
+        console.log("TeamsFlow: Chat encontrado. Acionando...");
+        clickable.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-            // Simula clique real para disparar o React
-            ['mousedown', 'mouseup', 'click'].forEach(evtType => {
-                clickable.dispatchEvent(new MouseEvent(evtType, {
-                    view: window, bubbles: true, cancelable: true, buttons: 1
-                }));
-            });
-            clickable.focus();
-            return;
-        }
-    }
+        // Sequência de eventos para "enganar" o React/Teams
+        ['mousedown', 'mouseup', 'click'].forEach(evtType => {
+            clickable.dispatchEvent(new MouseEvent(evtType, {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                buttons: 1
+            }));
+        });
 
-    // Fallback: Tenta clicar em qualquer coisa que tenha o nome no Aria-Label
-    console.log("TeamsFlow: Tentando navegação via fallback de Aria-Label...");
-    const allAria = Array.from(document.querySelectorAll('[aria-label]'));
-    const fallbackTarget = allAria.find(el => {
-        const label = el.getAttribute('aria-label')?.toLowerCase() || "";
-        return label.includes(name.toLowerCase()) && (el.getAttribute('role') === 'treeitem' || el.classList.contains('fui-TreeItem') || el.classList.contains('fui-ListItem'));
-    });
-
-    if (fallbackTarget) {
-        fallbackTarget.click();
-        console.log("TeamsFlow: Navegação via fallback executada.");
+        if (typeof clickable.focus === 'function') clickable.focus();
     } else {
-        console.warn(`TeamsFlow: Não foi possível encontrar o chat "${name}" na tela.`);
+        console.warn(`TeamsFlow: Chat "${name}" não localizado na barra lateral.`);
     }
 }
 
 function getRecentChats() {
-    // Busca por títulos com IDs específicos do v2
-    const titleSpans = Array.from(document.querySelectorAll('span[id^="title-chat-list-item_"]'));
+    // Busca abrangente por itens de chat
+    const titleElements = Array.from(document.querySelectorAll('span[id^="title-chat-list-item_"], [data-tid*="chat-list-item-title"]'));
     const chats = [];
 
-    titleSpans.forEach((span, index) => {
-        const name = span.textContent.trim();
+    titleElements.forEach((el, index) => {
+        const name = el.textContent.trim();
+        if (!name || name === "Chats" || name === "Conversas") return;
 
-        // No Teams v2, o TreeItem/ListItem agora é o container padrão
-        const itemContainer = span.closest('[role="row"], [role="listitem"], [role="treeitem"], .fui-ListItem, .fui-TreeItem');
-        let hasUnread = false;
+        const itemContainer = el.closest('[role="row"], [role="listitem"], [role="treeitem"], .fui-ListItem, .fui-TreeItem');
+        let unread = false;
 
         if (itemContainer) {
-            // Verifica unread via classe ou presença de bolinha
-            const unreadIndicator = itemContainer.querySelector('[class*="unread"], .fui-PresenceBadge, [aria-label*="não lida"]');
-            const isBold = window.getComputedStyle(span).fontWeight >= 600;
-            hasUnread = !!unreadIndicator || isBold;
+            unread = !!itemContainer.querySelector('[class*="unread"], .fui-PresenceBadge, [aria-label*="não lida"], [aria-label*="unread"]') ||
+                window.getComputedStyle(el).fontWeight >= 600;
         }
 
-        if (name && name !== "Chats") {
-            chats.push({
-                id: 'chat-' + (name.replace(/[^a-zA-Z0-9]/g, '-') || index),
-                name: name,
-                hasUnread: hasUnread,
-                createdAt: new Date().toISOString()
-            });
-        }
+        chats.push({
+            id: 'chat-' + index,
+            name: name,
+            hasUnread: unread
+        });
     });
 
+    // Remove duplicatas e limita a lista
     return chats.filter((v, i, a) => a.findIndex(t => t.name === v.name) === i).slice(0, 25);
 }
 
-console.log("TeamsFlow: Motor Corporativo v9 (TreeItem Support) Ativo.");
+updateResponsesCache();
 injectUI();
 setInterval(injectUI, 5000);
+setInterval(updateResponsesCache, 10000);
