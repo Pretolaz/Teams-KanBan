@@ -59,35 +59,67 @@ function startDetectionLoop(frame) {
 }
 
 function navigateToChat(name) {
-    console.log(`TeamsFlow: Tentando navegar para chat: ${name}`);
+    console.log(`TeamsFlow: Recebida solicitação de navegação para: "${name}"`);
+
+    // 1. Busca pelo título identificado pelo usuário
     const titleSpans = Array.from(document.querySelectorAll('span[id^="title-chat-list-item_"]'));
-    const target = titleSpans.find(s => s.textContent.trim() === name);
+    const target = titleSpans.find(s => {
+        const spanText = s.textContent.trim().toLowerCase();
+        const searchName = name.trim().toLowerCase();
+        return spanText === searchName || spanText.includes(searchName);
+    });
 
     if (target) {
-        const clickable = target.closest('[role="row"], [role="listitem"], .fui-ListItem');
+        // 2. Busca o container clicável (adicionado TreeItem por conta da nova evidência)
+        const clickable = target.closest('[role="row"], [role="listitem"], [role="treeitem"], .fui-ListItem, .fui-TreeItem, [data-tid*="chat-list-item"]');
+
         if (clickable) {
-            clickable.click();
-            console.log("TeamsFlow: Navegação executada.");
+            console.log("TeamsFlow: Elemento clicável (TreeItem) encontrado. Navegando...");
+
+            // Simula clique real para disparar o React
+            ['mousedown', 'mouseup', 'click'].forEach(evtType => {
+                clickable.dispatchEvent(new MouseEvent(evtType, {
+                    view: window, bubbles: true, cancelable: true, buttons: 1
+                }));
+            });
+            clickable.focus();
+            return;
         }
+    }
+
+    // Fallback: Tenta clicar em qualquer coisa que tenha o nome no Aria-Label
+    console.log("TeamsFlow: Tentando navegação via fallback de Aria-Label...");
+    const allAria = Array.from(document.querySelectorAll('[aria-label]'));
+    const fallbackTarget = allAria.find(el => {
+        const label = el.getAttribute('aria-label')?.toLowerCase() || "";
+        return label.includes(name.toLowerCase()) && (el.getAttribute('role') === 'treeitem' || el.classList.contains('fui-TreeItem') || el.classList.contains('fui-ListItem'));
+    });
+
+    if (fallbackTarget) {
+        fallbackTarget.click();
+        console.log("TeamsFlow: Navegação via fallback executada.");
+    } else {
+        console.warn(`TeamsFlow: Não foi possível encontrar o chat "${name}" na tela.`);
     }
 }
 
 function getRecentChats() {
-    // Foca nos IDs de títulos identificados pelo usuário
+    // Busca por títulos com IDs específicos do v2
     const titleSpans = Array.from(document.querySelectorAll('span[id^="title-chat-list-item_"]'));
     const chats = [];
 
     titleSpans.forEach((span, index) => {
         const name = span.textContent.trim();
 
-        // Detecta se há mensagem não lida (geralmente uma bolinha ou badge no container)
-        const itemContainer = span.closest('[role="row"], [role="listitem"], .fui-ListItem');
+        // No Teams v2, o TreeItem/ListItem agora é o container padrão
+        const itemContainer = span.closest('[role="row"], [role="listitem"], [role="treeitem"], .fui-ListItem, .fui-TreeItem');
         let hasUnread = false;
+
         if (itemContainer) {
-            // No Teams v2, itens não lidos costumam ter um badge ou classe de negrito no título
-            const badge = itemContainer.querySelector('[class*="badge"], [class*="unread"], .fui-PresenceBadge');
+            // Verifica unread via classe ou presença de bolinha
+            const unreadIndicator = itemContainer.querySelector('[class*="unread"], .fui-PresenceBadge, [aria-label*="não lida"]');
             const isBold = window.getComputedStyle(span).fontWeight >= 600;
-            hasUnread = !!badge || isBold;
+            hasUnread = !!unreadIndicator || isBold;
         }
 
         if (name && name !== "Chats") {
@@ -103,6 +135,6 @@ function getRecentChats() {
     return chats.filter((v, i, a) => a.findIndex(t => t.name === v.name) === i).slice(0, 25);
 }
 
-console.log("TeamsFlow: Motor Corporativo v8 (Semáforo + Unread) Ativo.");
+console.log("TeamsFlow: Motor Corporativo v9 (TreeItem Support) Ativo.");
 injectUI();
 setInterval(injectUI, 5000);
