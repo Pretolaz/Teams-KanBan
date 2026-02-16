@@ -1,11 +1,12 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <title>TeamsFlow Kanban</title>
   <link rel="stylesheet" href="sidebar.css">
 </head>
+
 <body>
   <div class="overlay-container">
     <header class="header">
@@ -16,7 +17,8 @@
       <nav class="nav">
         <button id="btn-kanban" class="nav-btn active">Kanban</button>
         <button id="btn-responses" class="nav-btn">Respostas</button>
-        <button id="btn-close" class="close-btn">Voltar para o Teams</button>
+        <button id="btn-reset-kanban" class="reset-btn">Resetar Quadros</button>
+        <button id="btn-close" class="close-btn">Sair</button>
       </nav>
     </header>
 
@@ -27,7 +29,7 @@
             <h2>Chats Recentes</h2>
             <span class="badge" id="count-recent">0</span>
           </div>
-          <div class="card-list" id="list-recent">
+          <div class="card-list" id="recent-list">
             <!-- Chats capturados aparecerão aqui -->
             <p class="empty-msg">Nenhum chat visível. Abra a aba de chat do Teams.</p>
           </div>
@@ -38,7 +40,7 @@
             <h2 style="color: #673AB7">A Fazer</h2>
             <span class="badge" id="count-todo">0</span>
           </div>
-          <div class="card-list dropzone" id="list-todo"></div>
+          <div class="card-list dropzone" id="todo-list"></div>
         </div>
 
         <div class="column" id="col-doing">
@@ -46,7 +48,7 @@
             <h2 style="color: #FF9800">Em Progresso</h2>
             <span class="badge" id="count-doing">0</span>
           </div>
-          <div class="card-list dropzone" id="list-doing"></div>
+          <div class="card-list dropzone" id="doing-list"></div>
         </div>
 
         <div class="column" id="col-done">
@@ -54,7 +56,7 @@
             <h2 style="color: #4CAF50">Concluído</h2>
             <span class="badge" id="count-done">0</span>
           </div>
-          <div class="card-list dropzone" id="list-done"></div>
+          <div class="card-list dropzone" id="done-list"></div>
         </div>
       </div>
     </main>
@@ -71,6 +73,8 @@
       </div>
     </main>
   </div>
+  <script src="kanban.js"></script>
   <script src="sidebar.js"></script>
 </body>
+
 </html>

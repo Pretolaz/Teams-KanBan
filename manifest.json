@@ -17,8 +17,9 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sidebar.html", "sidebar.js", "sidebar.css"],
+      "resources": ["sidebar.html", "sidebar.js", "sidebar.css", "kanban.js"],
       "matches": ["https://teams.microsoft.com/*"]
     }
   ]
 }
+

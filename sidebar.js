@@ -1,41 +1,86 @@
 // TeamsFlow Pro - Sidebar Logic
 
-// Garante que o script só vai rodar depois que o HTML for totalmente carregado
 document.addEventListener('DOMContentLoaded', () => {
-  const kanbanFrame = document.getElementById('kanban-frame');
-  const closeBtn = document.getElementById('btn-close'); // ID CORRIGIDO
-  const kanbanBtn = document.getElementById('btn-kanban'); // ID CORRIGIDO
+  const btnKanban = document.getElementById('btn-kanban');
+  const btnResponses = document.getElementById('btn-responses');
+  const btnClose = document.getElementById('btn-close');
 
-  if (closeBtn) {
-    closeBtn.onclick = () => {
-      window.parent.postMessage({ type: 'TEAMSFLOW_CLOSE' }, '*');
-    };
+  const viewKanban = document.getElementById('view-kanban');
+  const viewResponses = document.getElementById('view-responses');
+
+  const respTrigger = document.getElementById('resp-trigger');
+  const respText = document.getElementById('resp-text');
+  const btnSaveResp = document.getElementById('btn-save-resp');
+  const responsesList = document.getElementById('responses-list');
+
+  // --- Navegação ---
+  btnKanban.onclick = () => {
+    viewKanban.classList.add('active');
+    viewResponses.classList.remove('active');
+    btnKanban.classList.add('active');
+    btnResponses.classList.remove('active');
+    window.parent.postMessage({ type: 'TEAMSFLOW_REQUEST_CHATS' }, '*');
+  };
+
+  btnResponses.onclick = () => {
+    viewResponses.classList.add('active');
+    viewKanban.classList.remove('active');
+    btnResponses.classList.add('active');
+    btnKanban.classList.remove('active');
+    loadResponses();
+  };
+
+  btnClose.onclick = () => {
+    window.parent.postMessage({ type: 'TEAMSFLOW_CLOSE' }, '*');
+  };
+
+  // --- Lógica de Respostas Rápidas ---
+  function loadResponses() {
+    chrome.storage.local.get(['responses'], (data) => {
+      const list = data.responses || [];
+      responsesList.innerHTML = '';
+      list.forEach(resp => {
+        const item = document.createElement('div');
+        item.className = 'resp-item';
+        item.innerHTML = `
+                    <code>${resp.trigger}</code>
+                    <p>${resp.text}</p>
+                    <button class="delete-resp" data-id="${resp.id}">×</button>
+                `;
+        responsesList.appendChild(item);
+      });
+
+      // Botão excluir
+      document.querySelectorAll('.delete-resp').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.getAttribute('data-id');
+          const newList = list.filter(r => r.id != id);
+          chrome.storage.local.set({ responses: newList }, loadResponses);
+        };
+      });
+    });
   }
 
-  if (kanbanBtn) {
-    kanbanBtn.onclick = () => {
-      if (kanbanFrame) {
-        kanbanFrame.style.display = 'block';
-      }
-      // Solicita os chats recentes ao content script
-      window.parent.postMessage({ type: 'TEAMSFLOW_REQUEST_CHATS' }, '*');
-    };
-  }
+  btnSaveResp.onclick = () => {
+    const trigger = respTrigger.value.trim();
+    const text = respText.value.trim();
+    if (!trigger || !text) return;
 
-  // Ouve mensagens do Kanban (para fechar) e do Content Script (com os chats)
-  window.addEventListener('message', (event) => {
-    // Mensagem para fechar o Kanban vinda do kanban.js
-    if (event.data.type === 'TF_CLOSE_KANBAN') {
-      if (kanbanFrame) {
-        kanbanFrame.style.display = 'none';
-      }
-    }
+    chrome.storage.local.get(['responses'], (data) => {
+      const list = data.responses || [];
+      list.push({ trigger, text, id: Date.now() });
+      chrome.storage.local.set({ responses: list }, () => {
+        respTrigger.value = '';
+        respText.value = '';
+        loadResponses();
+      });
+    });
+  };
 
-    // Recebe os chats recentes do content.js e os repassa para o kanban.js
-    if (event.data.type === 'TF_RECENT_CHATS') {
-      if (kanbanFrame && kanbanFrame.contentWindow) {
-        kanbanFrame.contentWindow.postMessage(event.data, '*');
-      }
-    }
-  });
+  // Solicita chats iniciais
+  setTimeout(() => {
+    window.parent.postMessage({ type: 'TEAMSFLOW_REQUEST_CHATS' }, '*');
+  }, 500);
+
+  loadResponses(); // Carrega inicialment
 });
