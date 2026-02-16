@@ -32,12 +32,32 @@ function createCardElement(card, isRecent = false) {
   const div = document.createElement('div');
   div.className = 'card';
   div.draggable = true;
+
+  // Status padrão: verde
+  const status = card.status || 'green';
+  const note = card.note || '';
+
   div.innerHTML = `
-    <h4>${card.name}</h4>
-    <p>${card.lastMessage}</p>
-    <span class="date">${new Date(card.createdAt || Date.now()).toLocaleDateString()}</span>
+    <div class="card-header">
+      ${card.hasUnread ? '<span class="unread-icon" title="Mensagem não lida">⚡</span>' : ''}
+      <h4>${card.name}</h4>
+      <div class="semaphore">
+        <div class="status-dot red ${status === 'red' ? 'active' : ''}" data-status="red" title="Urgente"></div>
+        <div class="status-dot yellow ${status === 'yellow' ? 'active' : ''}" data-status="yellow" title="Atenção"></div>
+        <div class="status-dot green ${status === 'green' ? 'active' : ''}" data-status="green" title="No Prazo"></div>
+      </div>
+    </div>
+    <input type="text" class="card-note" placeholder="Adicione uma nota..." maxlength="50" value="${note}">
   `;
 
+  // --- Lógica de Navegação ---
+  div.onclick = (e) => {
+    // Se clicou no input ou no semáforo, não navega
+    if (e.target.tagName === 'INPUT' || e.target.classList.contains('status-dot')) return;
+    window.parent.postMessage({ type: 'TEAMSFLOW_GOTO_CHAT', name: card.name }, '*');
+  };
+
+  // --- Lógica de Arrastar ---
   div.ondragstart = (e) => {
     e.dataTransfer.setData('cardId', card.id);
     e.dataTransfer.setData('isRecent', isRecent);
@@ -46,7 +66,29 @@ function createCardElement(card, isRecent = false) {
     }
   };
 
+  // --- Lógica de Nota ---
+  const noteInput = div.querySelector('.card-note');
+  noteInput.onchange = () => {
+    updateCardData(card.id, { note: noteInput.value });
+  };
+
+  // --- Lógica de Semáforo ---
+  div.querySelectorAll('.status-dot').forEach(dot => {
+    dot.onclick = () => {
+      const newStatus = dot.getAttribute('data-status');
+      updateCardData(card.id, { status: newStatus });
+      // UI feedback imediato
+      div.querySelectorAll('.status-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+    };
+  });
+
   return div;
+}
+
+function updateCardData(cardId, data) {
+  db.cards = db.cards.map(c => c.id === cardId ? { ...c, ...data } : c);
+  chrome.storage.local.set({ cards: db.cards });
 }
 
 // Configura Drop nas colunas
@@ -68,6 +110,8 @@ function createCardElement(card, isRecent = false) {
         ...cardData,
         id: 'card-' + Date.now(),
         columnId: colId,
+        status: 'green',
+        note: '',
         createdAt: Date.now()
       };
       db.cards.push(newCard);
@@ -108,11 +152,9 @@ if (btnReset) {
       db.cards = [];
       chrome.storage.local.set({ cards: [] }, () => {
         loadData();
-        console.log("TeamsFlow: Kanban resetado pelo usuário.");
       });
     }
   };
 }
 
 loadData();
-

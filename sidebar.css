@@ -164,21 +164,100 @@ body {
 .card {
   background: var(--card-bg);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
   margin-bottom: 10px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  cursor: grab;
+  cursor: pointer;
   border-left: 4px solid #ccc;
   transition: transform 0.1s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .card:hover {
   transform: translateY(-2px);
+  background: white;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 5px;
 }
 
 .card h4 {
-  margin: 0 0 5px;
+  margin: 0;
   font-size: 13px;
+  flex: 1;
+  word-break: break-word;
+}
+
+.unread-icon {
+  color: #FFD700;
+  font-size: 14px;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.2));
+}
+
+.semaphore {
+  display: flex;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 3px;
+  border-radius: 12px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.2s, transform 0.1s;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.status-dot:hover {
+  transform: scale(1.2);
+}
+
+.status-dot.active {
+  opacity: 1;
+  box-shadow: 0 0 5px currentColor;
+}
+
+.status-dot.red {
+  color: #f44336;
+  background: #f44336;
+}
+
+.status-dot.yellow {
+  color: #ffeb3b;
+  background: #ffeb3b;
+}
+
+.status-dot.green {
+  color: #4caf50;
+  background: #4caf50;
+}
+
+.card-note {
+  width: 100%;
+  border: none;
+  border-bottom: 1px dashed #ccc;
+  background: transparent;
+  font-size: 11px;
+  color: #555;
+  padding: 2px 0;
+  outline: none;
+  font-style: italic;
+}
+
+.card-note:focus {
+  border-bottom-color: var(--primary);
+  font-style: normal;
 }
 
 .card p {
