@@ -4,55 +4,55 @@ Este documento registra todas as interações assertivas, correções e novas fu
 
 ---
 
+## 📅 [2026-02-16] - A Batalha Final do Gatilho Residual (v44 - v51)
+
+### 🛠️ Problema
+O CKEditor 5 do Microsoft Teams V2 provou ser um dos editores mais agressivos do mercado. Ele mantém um buffer interno de sincronização que restaura o gatilho (ex: `/b`) mesmo após deleções bem-sucedidas no DOM, resultando no bug `/bBom dia!` ou na duplicação da resposta rápida.
+
+### ✅ Solução Definitiva: A Estratégia "The One-Shot" (v51)
+Após 51 iterações de testes reais, chegamos à arquitetura de substituição definitiva que vence os buffers do Teams e do React:
+
+1.  **Proteção de Gatilho Cirúrgico (Regex)**: O script agora utiliza Regex para identificar o gatilho exato antes da posição do cursor, ignorando caracteres invisíveis (`\u200B`) que o Teams injeta.
+2.  **Trava de Segurança (Surgical Lock)**: Implementado um bloqueio temporal de 2 segundos por gatilho. Isso impede que eventos de `input` residuais disparem expansões em cascata, eliminando a duplicidade de respostas.
+3.  **Wipe Total (Limpeza Química)**: Ao detectar o match, o script executa um "hard reset" no editor:
+    *   `selectAllChildren(el)` + `document.execCommand('delete')` para avisar o modelo oficial do editor que o campo está vazio.
+    *   Limpeza física forçada do DOM (`innerHTML`, `textContent` e remoção de nós filhos).
+    *   Notificação de vácuo ao React via disparo manual de eventos de `input`.
+4.  **Protocolo de Vácuo (Espera do React)**: Um delay de 60ms é inserido após o wipe. Esse tempo é o necessário para o ciclo de vida do React do Teams processar que o campo está nulo, impedindo que ele "mescle" o novo texto com o antigo.
+5.  **Inserção de Via Única (The One-Shot)**: A resposta é injetada **exatamente uma vez** via simulação de colagem (`ClipboardEvent('paste')`).
+6.  **Lock de Modelo (Composition End)**: O ciclo é encerrado com `CompositionEvent('compositionend')`, o que "carimba" a transação no modelo de dados do CKEditor e habilita o botão de "Enviar" nativo.
+
+### 📁 Arquivos Modificados
+- `content.js`: Refatoração central da lógica de expansão.
+
+### 🚀 Resultado
+- **Status**: ✅ **FINALIZADO E ESTÁVEL**. Venceu os desafios de residual de gatilho, duplicação de texto e ativação do botão de envio.
+
+---
+
 ## 📅 [2026-02-16] - Correção do Botão "Resetar Quadros" e Erro de Contexto
 
 ### 🛠️ Problema
-O botão de reset não funcionava e gerava o erro `Uncaught Error: Extension context invalidated` no console. Isso ocorre quando a extensão é recarregada ou atualizada em segundo plano, invalidando a conexão do script injetado com a API da extensão (`chrome.runtime`).
+O botão de reset não funcionava e gerava o erro `Uncaught Error: Extension context invalidated`.
 
 ### ✅ Solução Técnica
-1.  **Validação de Contexto**: Foi criada a função `isContextValid()` que verifica a existência de `chrome.runtime.id`. Isso previne chamadas a APIs inexistentes que travam o script.
-2.  **Tratamento de Exceções**: Adicionado bloco `try/catch` envolta das operações de `chrome.storage.local.set` para capturar erros fatais de contexto.
-3.  **Feedback ao Usuário**: Caso o contexto seja detectado como inválido no momento do clique, um `alert` solicita que o usuário atualize a página do Teams para restaurar a conexão com a nova versão da extensão.
-4.  **Robustez no Fluxo**: Adicionada verificação de `chrome.runtime.lastError` nas callbacks para garantir que a UI só seja atualizada se a persistência de dados tiver sucesso.
+1.  **Validação de Contexto**: Função `isContextValid()` verifica a existência de `chrome.runtime.id`.
+2.  **Tratamento de Exceções**: Blocos `try/catch` para capturar erros fatais de contexto na persistência de dados.
+3.  **Feedback ao Usuário**: Alerta solicitando Refresh caso a conexão seja perdida.
 
 ### 📁 Arquivos Modificados
-- `kanban.js`: Centralização da lógica de proteção de contexto e tratamento de erro no reset.
-
-### 🚀 Resultado
-- **Status**: ✅ Validado e Operacional. O botão de reset agora limpa as colunas corretamente e o sistema recupera-se ou avisa o usuário em caso de invalidação de contexto.
+- `kanban.js`: Proteção de contexto e lógica de reset.
 
 ---
 
-## 📅 [2026-02-16] - Correção da Expansão de Respostas Rápidas (CKEditor)
+## 📅 [2026-02-14] - Correção da Navegação GOTO_CHAT (Teams V2)
 
 ### 🛠️ Problema
-O gatilho (ex: `/b`) era detectado, mas a substituição falhava. O texto era inserido *ao lado* do gatilho ou não era inserido de forma que o Teams/CKEditor reconhecesse a mudança, mantendo o gatilho residual no campo.
+A navegação automática para chats a partir do Kanban falhava devido a mudanças nos seletores do Microsoft Teams V2 (Fluent UI).
 
 ### ✅ Solução Técnica
-1.  **Seleção Ativa do Gatilho**: Em vez de apenas disparar o comando de inserção, o script agora identifica as coordenadas exatas do gatilho no nó de texto e cria um `Selection Range` sobre ele. Isso força o comando `insertText` a agir como uma substituição real.
-2.  **Estratégia de Fallback (Paste Simulation)**: Se o `document.execCommand` for bloqueado pelo CKEditor, o sistema aciona a função `syncToEditor`, que simula um evento de `paste` nativo com `DataTransfer`. Esta é a forma mais robusta de injetar texto em editores modernos.
-3.  **Sincronização de Estado**: Adicionado disparos manuais de eventos `input` com `bubbles: true` após a inserção para garantir que o React/Teams detecte que o conteúdo mudou e habilite o botão de "Enviar".
-4.  **Tratamento de ZWSP**: Melhoria na limpeza de caracteres invisíveis (`\u200B`) que o Teams insere automaticamente e que quebravam a detecção de sufixo.
+1.  **Seletores Elásticos**: Atualização para buscar elementos baseados em classes Fluent UI (`.fui-ListItem`, `.fui-TreeItem`) e atributos `data-tid`.
+2.  **Simulação de Pressão Nativa**: Implementação da sequência de eventos `mousedown` -> `mouseup` -> `click`. O Teams ignora cliques sintéticos isolados; ele precisa da sequência completa de interação do mouse para navegar.
 
 ### 📁 Arquivos Modificados
-- `content.js`: Refatoração da lógica `handleExpansion` (v25).
-
----
-
-## 📅 [2026-02-16] - Correção de Loop Infinito e Detecção de Nó (v26)
-
-### 🛠️ Problema
-O sistema entrou em loop infinito porque a substituição não ocorria de fato (o gatilho permanecia no campo), e o evento de `input` disparado pela própria tentativa de correção reativava o sensor imediatamente após o reset do flag `isExpanding`. Além disso, a detecção do nó de texto falhava em certas estruturas do CKEditor 5.
-
-### ✅ Solução Técnica
-1.  **Detecção de Nó Aprimorada**: No Teams V2, o cursor muitas vezes aponta para o elemento pai (`<p>` ou `<div>`) em vez do nó de texto diretamente. Adicionada lógica para localizar o nó de texto ativo com base no `range.startOffset`.
-2.  **Remoção de Duplo Estágio**: Agora, o script executa explicitamente `document.execCommand('delete')` na seleção do gatilho *antes* de tentar o `insertText`. Isso garante que o gatilho seja removido mesmo que o editor tenha comportamentos customizados de "append".
-3.  **Debounce e Anti-Loop**: O tempo de bloqueio (`isExpanding`) foi aumentado para **500ms** para dar tempo ao Microsoft Teams de processar internamente o DOM e as atualizações do React antes de permitir uma nova detecção.
-4.  **Tratamento de Offset**: Correção no cálculo de `startPos` usando `Math.max(0, offset - triggerLen)` para evitar erros de índice negativo em inícios de parágrafo.
-
-### 📁 Arquivos Modificados
-- `content.js`: Atualização importante da lógica de expansão (v26).
-
-
-
-
+- `content.js`: Atualização das funções `getRecentChats` e `navigateToChat`.

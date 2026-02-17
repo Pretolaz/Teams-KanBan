@@ -7,18 +7,20 @@ Este documento serve como guia de manutenção para localizar e ajustar seletore
 ## ⌨️ 1. Respostas Rápidas (Text Expansion)
 
 ### Desafio Técnico (CKEditor 5)
-O Teams utiliza o CKEditor 5, que gerencia o estado do texto através de um modelo interno (React/Redux). Edições diretas no DOM são frequentemente revertidas ou ignoradas pelo editor.
+O Teams utiliza o CKEditor 5, que gerencia o estado do texto através de um modelo interno (React/Redux). Edições diretas no DOM ou substituições parciais são frequentemente revertidas ou duplicadas devido ao buffer de sincronização do editor.
 
-### Como funciona a substituição (v27 - Atual):
-- **Detecção**: O script monitora eventos de `input` e `keyup` no documento.
-- **Localização**: Identifica o `Range` e o `startContainer` (nó de texto) onde o cursor está.
-- **Gatilho**: Verifica se o `textContent` termina com um dos gatilhos cadastrados (ex: `/b`).
-- **Remoção**: Utiliza `expandRange.deleteContents()` para remover o gatilho fisicamente do DOM antes da inserção.
-- **Inserção (Simulação de Colagem)**: Dispara um `ClipboardEvent('paste')` customizado carregando a resposta. Isso "engana" o editor, fazendo-o acreditar que o usuário colou um texto, o que força a atualização do seu estado interno.
+### Como funciona a substituição (v51 - Definitiva):
+- **Detecção Cirúrgica**: O script utiliza Regex para identificar o gatilho ignorando caracteres invisíveis (`\u200B`). Um bloqueio temporal de 2 segundos (Surgical Lock) impede disparos múltiplos indesejados.
+- **A Estratégia "The One-Shot"**:
+  1.  **Limpeza Química**: Ao detectar o gatilho, o script realiza um *Hard Reset* no campo: usa `selectAllChildren` + `document.execCommand('delete')` para informar ao modelo oficial do editor que o campo está vazio, seguido de limpeza física profunda do DOM (`innerHTML = ''`).
+  2.  **Protocolo de Vácuo**: Um delay de 60ms é respeitado para que o ciclo de vida do React do Teams valide o estado nulo do campo.
+  3.  **Inserção de Via Única**: A resposta é injetada via simulação de colagem (`ClipboardEvent('paste')`). Esta ação é detectada pelo Teams como uma entrada genuína do usuário.
+  4.  **Lock de Modelo**: O disparo de `CompositionEvent('compositionend')` sela a transação no modelo de dados, impedindo restaurações residuais e ativando o botão de "Enviar".
 
 ### Pontos de Manutenção:
+- **Bloqueio Temporal**: A variável `lastTriggerTime` gerencia o tempo entre expansões.
 - **Classe do Editor**: Atualmente detectado via `[contenteditable="true"]` e `data-tid="ckeditor"`.
-- **Nó de Texto**: Se o Teams mudar para um editor que não use nós de texto simples, a lógica de `Range` precisará ser ajustada no `handleExpansion`.
+- **Nó de Texto**: A lógica baseia-se em `Node.TEXT_NODE`. Estruturas de editor complexas (Shadow DOM) podem exigir revisão desta detecção.
 
 ---
 

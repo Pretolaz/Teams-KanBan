@@ -58,105 +58,108 @@ function injectUI() {
 }
 
 let isExpanding = false;
+let lastTriggerMatch = "";
+let lastTriggerTime = 0;
 
 function setupQuickReplies() {
-    console.log("TeamsFlow: Monitorando expansão v20 (The Infiltrator)...");
+    console.log("TeamsFlow: Monitorando expansão v51 (The One-Shot)...");
 
     const syncToEditor = (el, text) => {
-        // Dispara eventos que o CKEditor/React monitoram para colagem
         const dataTransfer = new DataTransfer();
         dataTransfer.setData('text/plain', text);
-
         const pasteEvent = new ClipboardEvent('paste', {
             clipboardData: dataTransfer,
             bubbles: true,
             cancelable: true
         });
-
         el.dispatchEvent(pasteEvent);
-
-        // Garante que o input event seja disparado como 'insertFromPaste'
-        const inputEvent = new InputEvent('input', {
-            inputType: 'insertFromPaste',
-            data: text,
-            bubbles: true
-        });
-        el.dispatchEvent(inputEvent);
     };
 
-    // Conjunto para evitar re-entrada na mesma execução
-    const activeExpansions = new Set();
-
-    const handleExpansion = (el) => {
+    const handleExpansion = async (el) => {
         if (isExpanding) return;
 
-        const selection = window.getSelection();
-        if (!selection || !selection.rangeCount) return;
-
-        const range = selection.getRangeAt(0);
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return;
+        const range = sel.getRangeAt(0);
         const node = range.startContainer;
         const offset = range.startOffset;
 
-        // Só processamos em nós de texto
         if (node.nodeType !== Node.TEXT_NODE) return;
 
         const textContent = node.textContent || "";
-        const textBeforeCursor = textContent.substring(0, offset);
 
-        responsesCache.forEach(resp => {
+        for (const resp of responsesCache) {
             const trigger = resp.trigger;
-            // Limpeza de caracteres invisíveis (ZWSP) comuns no Teams
-            const cleanText = textBeforeCursor.replace(/\u200B/g, '');
+            const suffix = textContent.substring(0, offset);
+            const triggerRegex = new RegExp(trigger.split('').join('\\u200B*') + '$');
+            const match = suffix.match(triggerRegex);
 
-            if (cleanText.endsWith(trigger) && !activeExpansions.has(trigger)) {
-                console.log(`TeamsFlow: [MATCH] v28 corrigindo duplicação de "${trigger}"...`);
+            if (match) {
+                // Proteção contra múltiplos disparos
+                if (trigger === lastTriggerMatch && (Date.now() - lastTriggerTime) < 2000) return;
+
+                console.log(`TeamsFlow: [MATCH] v51 (One-Shot) para "${trigger}"...`);
 
                 isExpanding = true;
-                activeExpansions.add(trigger);
+                lastTriggerMatch = trigger;
+                lastTriggerTime = Date.now();
 
                 try {
                     const replacement = resp.text + " ";
-                    const triggerLen = trigger.length;
 
-                    // --- Passo 1: Selecionar o Gatilho ---
-                    const expandRange = document.createRange();
-                    const startPos = Math.max(0, offset - triggerLen);
-                    expandRange.setStart(node, startPos);
-                    expandRange.setEnd(node, offset);
+                    // 1. LIMPEZA TOTAL IMEDIATA
+                    el.focus();
+                    sel.selectAllChildren(el);
 
-                    // Coloca o foco na seleção do gatilho
-                    selection.removeAllRanges();
-                    selection.addRange(expandRange);
+                    // Comando oficial para o modelo do editor
+                    document.execCommand('delete', false, null);
 
-                    // --- Passo 2: Substituição via Simulação de Colagem ---
-                    // Em vez de deleteContents(), vamos deixar o evento de paste 
-                    // sobrescrever a seleção atual (que é o próprio gatilho).
-                    // Isso é o que um "colar" real faz e o CKEditor aceita melhor.
+                    // Limpeza física do DOM
+                    el.innerHTML = '';
+                    el.textContent = '';
+                    while (el.firstChild) { el.removeChild(el.firstChild); }
+
+                    // Notifica o React que o campo está vazio
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    // 2. ESPERA PELO REACT/TEAMS (Crucial)
+                    await new Promise(r => setTimeout(r, 60));
+
+                    // 3. INSERÇÃO ÚNICA VIA COLAGEM
                     syncToEditor(el, replacement);
 
-                    // --- Passo 3: Limpeza de Segurança ---
-                    // Se por algum motivo o editor duplicou (inseriu ao lado em vez de substituir)
-                    // fazemos uma limpeza manual rápida no próximo frame
+                    // 4. LOCK E SINCRONIZAÇÃO FINAL
                     setTimeout(() => {
-                        const currentText = node.textContent;
-                        if (currentText.includes(trigger + resp.text)) {
-                            console.log("TeamsFlow: Detectada duplicação, limpando...");
-                            const badString = trigger + resp.text;
-                            node.textContent = currentText.replace(badString, resp.text + " ");
+                        // Faxina de última instância: se o /b voltou, removemos agora
+                        if (el.textContent.includes(trigger)) {
+                            el.textContent = el.textContent.replace(trigger, "").trim() + " ";
                         }
 
-                        isExpanding = false;
-                        activeExpansions.delete(trigger);
-                        el.dispatchEvent(new Event('input', { bubbles: true }));
-                    }, 500);
+                        el.dispatchEvent(new CompositionEvent('compositionend', { data: replacement, bubbles: true }));
+                        ['input', 'change'].forEach(ev => el.dispatchEvent(new Event(ev, { bubbles: true })));
+
+                        // Resgata cursor
+                        try {
+                            const lastRange = document.createRange();
+                            lastRange.selectNodeContents(el);
+                            lastRange.collapse(false);
+                            sel.removeAllRanges();
+                            sel.addRange(lastRange);
+                        } catch (e) { }
+
+                        setTimeout(() => { isExpanding = false; }, 500);
+                        console.log("TeamsFlow: Ciclo v51 finalizado com sucesso.");
+                    }, 50);
+
+                    break;
 
                 } catch (err) {
-                    console.error("TeamsFlow Error v28:", err);
+                    console.error("TeamsFlow Error v51:", err);
                     isExpanding = false;
-                    activeExpansions.delete(trigger);
                 }
             }
-        });
+        }
     };
 
     ['input', 'keyup'].forEach(evtType => {
