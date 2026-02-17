@@ -14,7 +14,7 @@
   font-size: 24px !important;
   cursor: pointer !important;
   z-index: 9999999 !important;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
   transition: transform 0.2s !important;
   border: none !important;
   outline: none !important;
@@ -33,9 +33,58 @@
   height: 100vh !important;
   border: none !important;
   z-index: 9999998 !important;
-  background: rgba(0,0,0,0.4) !important;
+  background: rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: blur(4px) !important;
 }
 
-.hidden { display: none !important; }
+.hidden {
+  display: none !important;
+}
 
+/* Sugestões de Resposta Rápida (Popup) */
+#tf-suggestion-box {
+  position: absolute;
+  z-index: 10000;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  width: 300px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'Segoe UI', sans-serif;
+  display: none;
+}
+
+.tf-suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tf-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.tf-suggestion-item:hover,
+.tf-suggestion-item.active {
+  background-color: #f3f2f1;
+}
+
+.tf-suggestion-trigger {
+  font-weight: bold;
+  color: #6264A7;
+  font-size: 13px;
+}
+
+.tf-suggestion-preview {
+  color: #666;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}

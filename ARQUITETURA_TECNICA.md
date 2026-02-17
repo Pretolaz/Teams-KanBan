@@ -9,6 +9,17 @@ Este documento serve como guia de manutenção para localizar e ajustar seletore
 ### Desafio Técnico (CKEditor 5)
 O Teams utiliza o CKEditor 5, que gerencia o estado do texto através de um modelo interno (React/Redux). Edições diretas no DOM ou substituições parciais são frequentemente revertidas ou duplicadas devido ao buffer de sincronização do editor.
 
+### Melhorias de Usabilidade (v53.5 - Smart Suggestions):
+1.  **Padronização de Gatilho (`\`)**:
+    - **Motivação**: Evitar conflito com os comandos de slash (`/`) nativos do Teams.
+    - **Implementação**: A interface da sidebar agora força e valida o prefixo `\` no cadastro.
+2.  **Sugestões Inteligentes (IntelliSense)**:
+    - **Detecção**: Um listener de `input` monitora a palavra atual sendo digitada. Se começar com `\`, dispara a busca.
+    - **Interface**:
+        - Pop-up flutuante posicionado **acima** do cursor (cálculo de `rect.top - height`).
+        - Lista filtrada em tempo real baseada no cache local (`responsesCache`).
+    - **Integração**: Ao selecionar uma sugestão, o script simula a deleção do texto parcial e insere o gatilho completo, aproveitando o mesmo pipeline de expansão robusto da v53.4.
+
 ### Como funciona a substituição (v53.4 - Classic + Regex Fix):
 - **Detecção Cirúrgica**: O script utiliza Regex com escape específico para suporte a barra invertida (`\`), garantindo que gatilhos como `\b` sejam tratados corretamente como texto e não como caracteres especiais.
 - **A Estratégia "Classic Atomic Paste"**:

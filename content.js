@@ -186,7 +186,133 @@ function setupQuickReplies() {
         }
     };
 
-    ['input', 'keyup'].forEach(evtType => {
+
+    // --- Lógica do Popup de Sugestões ---
+    let suggestionBox = null;
+    let selectedIndex = -1;
+    let currentMatch = null;
+
+    const createSuggestionBox = () => {
+        if (document.getElementById('tf-suggestion-box')) return;
+        suggestionBox = document.createElement('div');
+        suggestionBox.id = 'tf-suggestion-box';
+        document.body.appendChild(suggestionBox);
+    };
+
+    const hideSuggestions = () => {
+        if (suggestionBox) {
+            suggestionBox.style.display = 'none';
+            selectedIndex = -1;
+            currentMatch = null;
+        }
+    };
+
+    const showSuggestions = (rect, matches, query) => {
+        if (!suggestionBox) createSuggestionBox();
+
+        suggestionBox.innerHTML = '';
+        suggestionBox.style.display = 'block';
+
+        // Renderiza primeiro para calcular altura
+        matches.forEach((resp, index) => {
+            const item = document.createElement('div');
+            item.className = 'tf-suggestion-item';
+            if (index === selectedIndex) item.classList.add('active');
+
+            item.innerHTML = `
+                <span class="tf-suggestion-trigger">${resp.trigger}</span>
+                <span class="tf-suggestion-preview">${resp.text.substring(0, 30)}${resp.text.length > 30 ? '...' : ''}</span>
+            `;
+
+            item.onmousedown = (e) => {
+                e.preventDefault(); // Impede perda de foco
+                completeSuggestion(resp, query);
+            };
+
+            suggestionBox.appendChild(item);
+        });
+
+        // Posicionamento ACIMA do cursor
+        const boxHeight = suggestionBox.offsetHeight;
+        suggestionBox.style.top = (rect.top + window.scrollY - boxHeight - 5) + 'px';
+        suggestionBox.style.left = (rect.left + window.scrollX) + 'px';
+    };
+
+    const completeSuggestion = (resp, query) => {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+        const range = sel.getRangeAt(0);
+        const node = range.startContainer;
+        const offset = range.startOffset;
+
+        // Remove o que foi digitado até agora (ex: \bo)
+        const queryLen = query.length;
+
+        // Ajuste fino: Se o usuário clicou, precisamos garantir que o foco está no lugar certo
+        // A lógica de expansão original (handleExpansion) cuida da troca completa
+        // Aqui simula a digitação completa do gatilho + espaço para ativar o handleExpansion existente
+
+        // 1. Remove o texto parcial
+        const surgicalRange = document.createRange();
+        surgicalRange.setStart(node, offset - queryLen);
+        surgicalRange.setEnd(node, offset);
+        sel.removeAllRanges();
+        sel.addRange(surgicalRange);
+        document.execCommand('delete');
+
+        // 2. Insere o gatilho completo
+        document.execCommand('insertText', false, resp.trigger + ' ');
+
+        hideSuggestions();
+    };
+
+    const handleInput = (e) => {
+        const el = e.target;
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+
+        const range = sel.getRangeAt(0);
+        const node = range.startContainer;
+        const offset = range.startOffset;
+
+        if (node.nodeType !== Node.TEXT_NODE) {
+            hideSuggestions();
+            return;
+        }
+
+        const text = node.textContent;
+        // Pega a palavra atual sendo digitada
+        const textBeforeCursor = text.substring(0, offset);
+        const lastWordMatch = textBeforeCursor.match(/(\\[^\s]*)$/); // Captura algo começando com \ até o cursor
+
+        if (lastWordMatch) {
+            const query = lastWordMatch[0];
+
+            // Filtra respostas que começam com o que foi digitado
+            const matches = responsesCache.filter(r => r.trigger.startsWith(query));
+
+            if (matches.length > 0) {
+                const rect = range.getBoundingClientRect();
+                if (rect.width === 0 && rect.height === 0) {
+                    // Fallback se range collapsed não der rect (as vezes acontece)
+                    const span = document.createElement('span');
+                    span.textContent = '|';
+                    range.insertNode(span);
+                    const spanRect = span.getBoundingClientRect();
+                    span.parentNode.removeChild(span);
+                    showSuggestions(spanRect, matches, query);
+                } else {
+                    showSuggestions(rect, matches, query);
+                }
+            } else {
+                hideSuggestions();
+            }
+        } else {
+            hideSuggestions();
+        }
+    };
+
+    ['input', 'keyup', 'click'].forEach(evtType => {
         document.addEventListener(evtType, (e) => {
             const el = e.target;
             const isEditor = el && (
@@ -194,7 +320,15 @@ function setupQuickReplies() {
                 el.getAttribute('data-tid') === 'ckeditor' ||
                 el.closest('[contenteditable="true"]')
             );
-            if (isEditor) handleExpansion(el);
+
+            if (isEditor) {
+                if (evtType === 'input' || evtType === 'keyup') handleInput(e);
+                // Fecha se clicar fora
+                if (evtType === 'click' && !e.target.closest('#tf-suggestion-box')) hideSuggestions();
+            }
+
+            // Mantém a lógica original de expansão no input/keyup
+            if (isEditor && (evtType === 'input' || evtType === 'keyup')) handleExpansion(el);
         }, true);
     });
 }

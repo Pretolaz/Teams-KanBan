@@ -2,6 +2,21 @@
 
 Este documento registra todas as interações assertivas, correções e novas funcionalidades implementadas no projeto, detalhando a abordagem técnica utilizada para cada acerto.
 
+## 📅 [2026-02-17] - Smart Suggestions & Backslash Enforcement (v53.5)
+
+### 🛠️ Melhorias de UX
+1.  **Padronização de Gatilho**: A interface agora força o uso de `\` como prefixo para gatilhos, alinhando a instrução do usuário e evitando confusão com comandos do Teams (`/`).
+2.  **Pop-up Inteligente**: Implementado um menu de sugestões ("IntelliSense") que aparece **acima** do cursor ao digitar `\`.
+    - Filtra as respostas em tempo real.
+    - Permite seleção por clique.
+    - Preserva a lógica de expansão robusta da v53.4.
+
+### 📁 Arquivos Modificados
+- `sidebar.html/js`: Instruções e validação de `\`.
+- `content.js/css`: Lógica e estilo do pop-up de sugestões.
+
+---
+
 ## 📅 [2026-02-17] - O Retorno do Rei (v53.4 - Classic + Regex Fix)
 
 ### 🛠️ Problema
