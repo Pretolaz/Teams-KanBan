@@ -67,6 +67,20 @@ function setupQuickReplies() {
     const syncToEditor = (el, text) => {
         const dataTransfer = new DataTransfer();
         dataTransfer.setData('text/plain', text);
+
+        // Conversão para HTML para garantir que o CKEditor respeite as quebras de linha
+        // CKEditor e outros Rich Text Editors preferem text/html para formatação
+        const escapeHtml = (unsafe) => {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        };
+        const html = escapeHtml(text).replace(/\n/g, '<br>');
+        dataTransfer.setData('text/html', html);
+
         const pasteEvent = new ClipboardEvent('paste', {
             clipboardData: dataTransfer,
             bubbles: true,

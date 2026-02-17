@@ -336,6 +336,13 @@ body {
   font-weight: bold;
 }
 
+.resp-item p {
+  margin: 10px 0 0;
+  white-space: pre-wrap;
+  color: #555;
+  font-size: 13px;
+}
+
 .delete-resp {
   position: absolute;
   top: 10px;
