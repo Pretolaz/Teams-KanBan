@@ -9,13 +9,12 @@ Este documento serve como guia de manutenção para localizar e ajustar seletore
 ### Desafio Técnico (CKEditor 5)
 O Teams utiliza o CKEditor 5, que gerencia o estado do texto através de um modelo interno (React/Redux). Edições diretas no DOM ou substituições parciais são frequentemente revertidas ou duplicadas devido ao buffer de sincronização do editor.
 
-### Como funciona a substituição (v51 - Definitiva):
+### Como funciona a substituição (v53 - Atomic Paste):
 - **Detecção Cirúrgica**: O script utiliza Regex para identificar o gatilho ignorando caracteres invisíveis (`\u200B`). Um bloqueio temporal de 2 segundos (Surgical Lock) impede disparos múltiplos indesejados.
-- **A Estratégia "The One-Shot"**:
-  1.  **Limpeza Química**: Ao detectar o gatilho, o script realiza um *Hard Reset* no campo: usa `selectAllChildren` + `document.execCommand('delete')` para informar ao modelo oficial do editor que o campo está vazio, seguido de limpeza física profunda do DOM (`innerHTML = ''`).
-  2.  **Protocolo de Vácuo**: Um delay de 60ms é respeitado para que o ciclo de vida do React do Teams valide o estado nulo do campo.
-  3.  **Inserção de Via Única**: A resposta é injetada via simulação de colagem (`ClipboardEvent('paste')`). Esta ação é detectada pelo Teams como uma entrada genuína do usuário.
-  4.  **Lock de Modelo**: O disparo de `CompositionEvent('compositionend')` sela a transação no modelo de dados, impedindo restaurações residuais e ativando o botão de "Enviar".
+- **A Estratégia "Atomic Paste"**:
+  1.  **Seleção Cirúrgica**: Ao detectar o gatilho, o script cria um `Range` preciso envolvendo apenas o texto do gatilho e o seleciona visualmente. 
+  2.  **Paste Event Simulation**: Em vez de tentar deletar ou inserir texto via comandos (que o CKEditor bloqueia ou falha em sincronizar), o script despacha um `ClipboardEvent('paste')` contendo a resposta.
+  3.  **Resolução Nativa**: O CKEditor (e qualquer editor moderno) interpreta "Colar sobre seleção" como uma instrução atômica de "Substituir Seleção pelo Conteúdo da Área de Transferência". Isso garante que o modelo interno do editor seja atualizado corretamente de uma só vez, prevenindo duplicações e envios fantasmas.
 
 ### Pontos de Manutenção:
 - **Bloqueio Temporal**: A variável `lastTriggerTime` gerencia o tempo entre expansões.

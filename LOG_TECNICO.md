@@ -2,6 +2,27 @@
 
 Este documento registra todas as interações assertivas, correções e novas funcionalidades implementadas no projeto, detalhando a abordagem técnica utilizada para cada acerto.
 
+## 📅 [2026-02-16] - O Dilema da Seleção e o Atomic Paste (v53 - DEFINITIVO)
+
+### 🛠️ Problema
+A estratégia de deleção manual via DOM (v54) falhou porque o CKEditor restaura o texto deletado ou não atualiza seu modelo em tempo hábil para a verificação, gerando erro de timeout. Já a tentativa inicial de comandos nativos (v52) era bloqueada.
+
+### ✅ Solução Técnica (v53 - Atomic Paste)
+1.  **Mudança de Paradigma**: Em vez de lutar com a deleção manual, voltamos a confiar no evento `paste` sobre uma seleção.
+2.  **Atomic Paste**: A lógica seleciona o gatilho e despacha imediatamente um `ClipboardEvent('paste')`. 
+3.  **Por que funciona?**: Diferente de comandos manuais ou scripts de deleção, o evento `paste` vindo de uma interação do usuário (simulada) é tratado pelo CKEditor como uma transação atômica prioritária: "Substitua o que está selecionado pelo buffer". Isso garante a sincronia imediata do Model e da View, sem gatilhos residuais.
+
+### 📁 Arquivos Modificados
+- `content.js`: Arquitetura v53 (Atomic Paste) restaurada.
+
+---
+
+## 📅 [2026-02-16] - O Dilema do Ghost Model (v52)
+
+---
+
+## 📅 [2026-02-16] - O Dilema do Ghost Model (v52)
+
 ---
 
 ## 📅 [2026-02-16] - A Batalha Final do Gatilho Residual (v44 - v51)

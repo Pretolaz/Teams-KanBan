@@ -62,7 +62,7 @@ let lastTriggerMatch = "";
 let lastTriggerTime = 0;
 
 function setupQuickReplies() {
-    console.log("TeamsFlow: Monitorando expansão v51 (The One-Shot)...");
+    console.log("TeamsFlow: Monitorando expansão v53 (Atomic Paste)...");
 
     const syncToEditor = (el, text) => {
         const dataTransfer = new DataTransfer();
@@ -98,7 +98,7 @@ function setupQuickReplies() {
                 // Proteção contra múltiplos disparos
                 if (trigger === lastTriggerMatch && (Date.now() - lastTriggerTime) < 2000) return;
 
-                console.log(`TeamsFlow: [MATCH] v51 (One-Shot) para "${trigger}"...`);
+                console.log(`TeamsFlow: [MATCH] v53 (Atomic Paste) para "${trigger}"...`);
 
                 isExpanding = true;
                 lastTriggerMatch = trigger;
@@ -106,40 +106,47 @@ function setupQuickReplies() {
 
                 try {
                     const replacement = resp.text + " ";
+                    const matchLen = match[0].length;
 
-                    // 1. LIMPEZA TOTAL IMEDIATA
+                    // 1. SELEÇÃO CIRÚRGICA (Target Lock)
                     el.focus();
-                    sel.selectAllChildren(el);
+                    const surgicalRange = document.createRange();
+                    surgicalRange.setStart(node, offset - matchLen);
+                    surgicalRange.setEnd(node, offset);
+                    sel.removeAllRanges();
+                    sel.addRange(surgicalRange);
 
-                    // Comando oficial para o modelo do editor
-                    document.execCommand('delete', false, null);
+                    // Pequena pausa para garantir que o editor reconheça a seleção
+                    await new Promise(r => setTimeout(r, 10));
 
-                    // Limpeza física do DOM
-                    el.innerHTML = '';
-                    el.textContent = '';
-                    while (el.firstChild) { el.removeChild(el.firstChild); }
-
-                    // Notifica o React que o campo está vazio
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-
-                    // 2. ESPERA PELO REACT/TEAMS (Crucial)
-                    await new Promise(r => setTimeout(r, 60));
-
-                    // 3. INSERÇÃO ÚNICA VIA COLAGEM
+                    // 2. ATOMIC PASTE (Deixa o CKEditor resolver a substituição)
+                    // Ao colar sobre uma seleção, o editor nativamente remove a seleção e insere o texto.
+                    // Isso é uma transação única no modelo de dados, evitando dessincronia.
                     syncToEditor(el, replacement);
 
-                    // 4. LOCK E SINCRONIZAÇÃO FINAL
+                    // 3. FINALIZAÇÃO E VERIFICAÇÃO POSTERIOR
                     setTimeout(() => {
-                        // Faxina de última instância: se o /b voltou, removemos agora
+                        // Verificação de segurança: se o gatilho ainda estiver lá, tentamos limpar
                         if (el.textContent.includes(trigger)) {
-                            el.textContent = el.textContent.replace(trigger, "").trim() + " ";
+                            console.warn("TeamsFlow: Atomic Paste falhou na remoção. Tentando fallback...");
+                            // Fallback: Seleciona e Deleta manualmente
+                            try {
+                                const range = document.createRange();
+                                range.selectNodeContents(el);
+                                const text = el.textContent;
+                                const idx = text.lastIndexOf(trigger);
+                                if (idx !== -1) {
+                                    range.setStart(el.firstChild, idx);
+                                    range.setEnd(el.firstChild, idx + trigger.length);
+                                    sel.removeAllRanges();
+                                    sel.addRange(range);
+                                    document.execCommand('delete', false, null);
+                                    syncToEditor(el, replacement);
+                                }
+                            } catch (e) { }
                         }
 
-                        el.dispatchEvent(new CompositionEvent('compositionend', { data: replacement, bubbles: true }));
-                        ['input', 'change'].forEach(ev => el.dispatchEvent(new Event(ev, { bubbles: true })));
-
-                        // Resgata cursor
+                        // Restaura cursor para o final
                         try {
                             const lastRange = document.createRange();
                             lastRange.selectNodeContents(el);
@@ -148,14 +155,14 @@ function setupQuickReplies() {
                             sel.addRange(lastRange);
                         } catch (e) { }
 
-                        setTimeout(() => { isExpanding = false; }, 500);
-                        console.log("TeamsFlow: Ciclo v51 finalizado com sucesso.");
-                    }, 50);
+                        setTimeout(() => { isExpanding = false; }, 400);
+                        console.log("TeamsFlow: Ciclo v53 (Atomic Paste) finalizado.");
+                    }, 100);
 
                     break;
 
                 } catch (err) {
-                    console.error("TeamsFlow Error v51:", err);
+                    console.error("TeamsFlow Error v53:", err);
                     isExpanding = false;
                 }
             }
