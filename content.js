@@ -62,7 +62,7 @@ let lastTriggerMatch = "";
 let lastTriggerTime = 0;
 
 function setupQuickReplies() {
-    console.log("TeamsFlow: Monitorando expansão v53 (Atomic Paste)...");
+    console.log("TeamsFlow: Monitorando expansão v53.4 (v53 + Regex Fix)...");
 
     const syncToEditor = (el, text) => {
         const dataTransfer = new DataTransfer();
@@ -91,14 +91,19 @@ function setupQuickReplies() {
         for (const resp of responsesCache) {
             const trigger = resp.trigger;
             const suffix = textContent.substring(0, offset);
-            const triggerRegex = new RegExp(trigger.split('').join('\\u200B*') + '$');
+
+            // v53.4: Correção Crítica de Regex para Backslash
+            // Transforma \b em \\u200B*b e não em \b (backspace)
+            const escapedTrigger = trigger.split('').map(c => c === '\\' ? '\\\\' : c).join('\\u200B*');
+            const triggerRegex = new RegExp(escapedTrigger + '$');
+
             const match = suffix.match(triggerRegex);
 
             if (match) {
                 // Proteção contra múltiplos disparos
                 if (trigger === lastTriggerMatch && (Date.now() - lastTriggerTime) < 2000) return;
 
-                console.log(`TeamsFlow: [MATCH] v53 (Atomic Paste) para "${trigger}"...`);
+                console.log(`TeamsFlow: [MATCH] v53.4 para "${trigger}"...`);
 
                 isExpanding = true;
                 lastTriggerMatch = trigger;
@@ -108,7 +113,7 @@ function setupQuickReplies() {
                     const replacement = resp.text + " ";
                     const matchLen = match[0].length;
 
-                    // 1. SELEÇÃO CIRÚRGICA (Target Lock)
+                    // 1. SELEÇÃO CIRÚRGICA (v53 CLÁSSICA)
                     el.focus();
                     const surgicalRange = document.createRange();
                     surgicalRange.setStart(node, offset - matchLen);
@@ -116,20 +121,18 @@ function setupQuickReplies() {
                     sel.removeAllRanges();
                     sel.addRange(surgicalRange);
 
-                    // Pequena pausa para garantir que o editor reconheça a seleção
+                    // Delay crucial da v53 que garantia a estabilidade
                     await new Promise(r => setTimeout(r, 10));
 
-                    // 2. ATOMIC PASTE (Deixa o CKEditor resolver a substituição)
-                    // Ao colar sobre uma seleção, o editor nativamente remove a seleção e insere o texto.
-                    // Isso é uma transação única no modelo de dados, evitando dessincronia.
+                    // 2. ATOMIC PASTE (Deixa o CKEditor resolver)
                     syncToEditor(el, replacement);
 
                     // 3. FINALIZAÇÃO E VERIFICAÇÃO POSTERIOR
                     setTimeout(() => {
-                        // Verificação de segurança: se o gatilho ainda estiver lá, tentamos limpar
+                        // Verificação de segurança v53 original
                         if (el.textContent.includes(trigger)) {
-                            console.warn("TeamsFlow: Atomic Paste falhou na remoção. Tentando fallback...");
-                            // Fallback: Seleciona e Deleta manualmente
+                            console.warn("TeamsFlow: Atomic Paste falhou na remoção. Tentando fallback v53...");
+                            // Fallback clássico v53
                             try {
                                 const range = document.createRange();
                                 range.selectNodeContents(el);
@@ -146,7 +149,7 @@ function setupQuickReplies() {
                             } catch (e) { }
                         }
 
-                        // Restaura cursor para o final
+                        // Restaura cursor
                         try {
                             const lastRange = document.createRange();
                             lastRange.selectNodeContents(el);
@@ -156,13 +159,13 @@ function setupQuickReplies() {
                         } catch (e) { }
 
                         setTimeout(() => { isExpanding = false; }, 400);
-                        console.log("TeamsFlow: Ciclo v53 (Atomic Paste) finalizado.");
+                        console.log("TeamsFlow: Ciclo v53.4 finalizado.");
                     }, 100);
 
                     break;
 
                 } catch (err) {
-                    console.error("TeamsFlow Error v53:", err);
+                    console.error("TeamsFlow Error v53.4:", err);
                     isExpanding = false;
                 }
             }

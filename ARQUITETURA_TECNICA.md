@@ -9,12 +9,13 @@ Este documento serve como guia de manutenção para localizar e ajustar seletore
 ### Desafio Técnico (CKEditor 5)
 O Teams utiliza o CKEditor 5, que gerencia o estado do texto através de um modelo interno (React/Redux). Edições diretas no DOM ou substituições parciais são frequentemente revertidas ou duplicadas devido ao buffer de sincronização do editor.
 
-### Como funciona a substituição (v53 - Atomic Paste):
-- **Detecção Cirúrgica**: O script utiliza Regex para identificar o gatilho ignorando caracteres invisíveis (`\u200B`). Um bloqueio temporal de 2 segundos (Surgical Lock) impede disparos múltiplos indesejados.
-- **A Estratégia "Atomic Paste"**:
-  1.  **Seleção Cirúrgica**: Ao detectar o gatilho, o script cria um `Range` preciso envolvendo apenas o texto do gatilho e o seleciona visualmente. 
-  2.  **Paste Event Simulation**: Em vez de tentar deletar ou inserir texto via comandos (que o CKEditor bloqueia ou falha em sincronizar), o script despacha um `ClipboardEvent('paste')` contendo a resposta.
-  3.  **Resolução Nativa**: O CKEditor (e qualquer editor moderno) interpreta "Colar sobre seleção" como uma instrução atômica de "Substituir Seleção pelo Conteúdo da Área de Transferência". Isso garante que o modelo interno do editor seja atualizado corretamente de uma só vez, prevenindo duplicações e envios fantasmas.
+### Como funciona a substituição (v53.4 - Classic + Regex Fix):
+- **Detecção Cirúrgica**: O script utiliza Regex com escape específico para suporte a barra invertida (`\`), garantindo que gatilhos como `\b` sejam tratados corretamente como texto e não como caracteres especiais.
+- **A Estratégia "Classic Atomic Paste"**:
+  1.  **Seleção Clássica**: Retornamos ao uso do `document.createRange()` padrão, que provou ser o mais compatível com o Teams.
+  2.  **Delay Estratégico**: Um pequeno pause de 10ms é respeitado após a seleção e antes da colagem. Isso é crucial para que o ciclo de vida do React do Teams reconheça e "trave" a seleção.
+  3.  **Atomic Paste**: Despachamos o `ClipboardEvent('paste')` contendo a resposta.
+  4.  **Confiabilidade**: Diferente das tentativas de "Instant Paste" que causaram race conditions, esta abordagem dá tempo ao editor para se preparar, garantindo a substituição limpa.
 
 ### Pontos de Manutenção:
 - **Bloqueio Temporal**: A variável `lastTriggerTime` gerencia o tempo entre expansões.

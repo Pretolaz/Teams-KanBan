@@ -2,6 +2,56 @@
 
 Este documento registra todas as interações assertivas, correções e novas funcionalidades implementadas no projeto, detalhando a abordagem técnica utilizada para cada acerto.
 
+## 📅 [2026-02-17] - O Retorno do Rei (v53.4 - Classic + Regex Fix)
+
+### 🛠️ Problema
+As tentativas de otimização v53.1, v53.2 e v53.3 introduziram instabilidades ao tentar remover o delay de 10ms ou usar APIs de seleção/deleção complexas. A versão v53 original era a mais estável, mas falhava com gatilhos de barra invertida (`\`) apenas por um erro de Regex.
+
+### ✅ Solução Técnica
+1.  **Reversão para v53**: O código foi revertido para a lógica exata da v53 (Seleção Range Padrão + Delay de 10ms + Atomic Paste).
+2.  **Backslash Fix Isolado**: A ÚNICA alteração aplicada sobre a v53 foi na construção da Regex, escapando o caractere `\` corretamente.
+    ```javascript
+    trigger.split('').map(c => c === '\\' ? '\\\\' : c).join('\\u200B*')
+    ```
+    Isso deve garantir a estabilidade da v53 original com o suporte a novos gatilhos.
+
+### 📁 Arquivos Modificados
+- `content.js`: Reversão e Correção Pontual.
+
+---
+
+## 📅 [2026-02-17] - A Maldição da Barra Invertida (v53.3)
+
+### 🛠️ Problema
+Ao tentar mudar os gatilhos de `/` para `\`, a extensão parou de expandir. O motivo era a construção da Regex: `new RegExp("nb")` funciona, mas `new RegExp("\b")` é interpretado como caractere de controle (backspace) ou word boundary, quebrando a detecção.
+
+### ✅ Solução Técnica
+1.  **Regex Escaping**: A função de criação da Regex foi atualizada para escapar explicitamente a barra invertida (`\\`).
+    ```javascript
+    trigger.split('').map(c => c === '\\' ? '\\\\' : c).join('\\u200B*')
+    ```
+    Isso garante que um gatilho `\t` seja convertido na Regex `\\t` (literal backslash + t) e não no caractere TAB.
+
+### 📁 Arquivos Modificados
+- `content.js`: Ajuste na linha de Regex.
+
+---
+
+## 📅 [2026-02-17] - Refinamento da Seleção (v53.1 - Instant Atomic Paste)
+
+### 🛠️ Problema (v53)
+Embora a v53 funcionasse para alguns gatilhos (`/b`), outros (`/t`) falhavam, resultando em concatenação (`/tBoa tarde`) e erros de `selectionchange`. O diagnóstico revelou que o delay de 10ms permitia ao Teams reverter a seleção antes da colagem, e o método `addRange` entrava em conflito com o ciclo de vida do React.
+
+### ✅ Solução Técnica (v53.1)
+1.  **Instant Selection (Zero Delay)**: Removemos o `setTimeout(10)`. A colagem deve ocorrer no mesmo ciclo de execução da seleção para evitar interferência do editor.
+2.  **Robust Selection API**: Adotamos `sel.setBaseAndExtent()` (quando disponível) no lugar de `removeAllRanges/addRange`. Este método é nativo do WebKit/Blink e manipula a seleção como uma transação única, reduzindo a chance de erros de `selectionchange`.
+3.  **Fallback com TreeWalker**: O mecanismo de fallback foi reescrito para usar `TreeWalker` e encontrar o nó de texto exato do gatilho, em vez de assumir cegamente `firstChild`, o que causava falhas silenciosas.
+
+### 📁 Arquivos Modificados
+- `content.js`: Refatoração para v53.1.
+
+---
+
 ## 📅 [2026-02-16] - O Dilema da Seleção e o Atomic Paste (v53 - DEFINITIVO)
 
 ### 🛠️ Problema
