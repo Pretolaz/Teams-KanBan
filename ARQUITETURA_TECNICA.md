@@ -65,8 +65,40 @@ O script vasculha a barra lateral esquerda em busca dos nomes das conversas.
 
 ---
 
+## 🔍 4. Mapeamento de Seletores e Interações (DOM Hooks)
+
+Esta seção lista os elementos cruciais do DOM do Teams que o script captura. **Se o Teams atualizar e algo parar de funcionar, comece verificando estes seletores:**
+
+### A. Editor de Texto (Onde você digita)
+O script monitora eventos de `input` e `keyup` em qualquer elemento que corresponda a:
+- Atributo `contenteditable="true"`
+- Atributo `data-tid="ckeditor"`
+- *Nota*: O script sobe a árvore DOM (`el.closest`) procurando um container editável se o evento ocorrer num nó filho.
+
+### B. Lista de Chats (Sidebar Esquerda)
+Para popular o Kanban, o script varre o DOM buscando:
+1.  **Título da Conversa (Nome do Chat)**:
+    - `span[id^="title-chat-list-item_"]` (Padrão V1/V2 misto)
+    - `[data-tid*="chat-list-item-title"]` (Atributo de teste confiável)
+    - `.fui-TreeItem__content` (Fluent UI moderno)
+    - `[role="treeitem"]` (Acessibilidade)
+
+2.  **Container do Item de Chat (O elemento clicável)**:
+    - Buscamos o pai (`closest`) que tenha: `[role="row"]`, `[role="listitem"]`, `.fui-ListItem` ou `.fui-TreeItem`.
+    - *Ação*: Disparamos `mousedown`, `mouseup` e `click` neste container para abrir o chat.
+
+3.  **Indicador de Não Lido (Unread Badge)**:
+    - `.fui-PresenceBadge` (Badge de status/notificação)
+    - `[aria-label*="não lida"]` ou `[aria-label*="unread"]` (Acessibilidade)
+    - Fallback visual: Verificamos se o `fontWeight` do título é `>= 600` (Negrito).
+
+### C. Pop-up de Sugestões (Injetado pelo Script)
+- **ID**: `#tf-suggestion-box` (Container absoluto)
+- **Posicionamento**: Calculado via `getBoundingClientRect()` do cursor de texto (Range).
+  - Topo: `rect.top + window.scrollY - boxHeight - 5` (Acima do cursor)
+  - Esquerda: `rect.left + window.scrollX`
+
+---
+
 ## 🛠️ Guia de Ajuste Rápido
-Se o Teams mudar, verifique no inspetor de elementos:
-1. O botão de enviar ("setinha") só aparece depois da digitação? **Ajuste `syncToEditor`**.
-2. O clique no Kanban não abre o chat? **Verifique os seletores em `navigateToChat`**.
-3. O gatilho não é detectado? **Verifique se o nó de texto ativo mudou de estrutura no `handleExpansion`**.
+Se o Teams mudar, verifique no inspetor de elementos por estas classes/atributos. Frequentemente a Microsoft muda os nomes das classes (ex: de `.fui-ListItem` para algo hashado como `.abc-123`), mas mantém os atributos `data-tid` ou `role`. **Priorize seletores baseados em atributos (`[]`) ao invés de classes (`.`)**.
