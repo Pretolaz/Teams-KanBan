@@ -34,6 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.parent.postMessage({ type: 'TEAMSFLOW_CLOSE' }, '*');
   };
 
+  const btnCloseRespInternal = document.getElementById('btn-close-responses-internal');
+  if (btnCloseRespInternal) {
+    btnCloseRespInternal.onclick = () => {
+      window.parent.postMessage({ type: 'TEAMSFLOW_CLOSE' }, '*');
+    };
+  }
+
   // --- Lógica de Respostas Rápidas ---
   function loadResponses() {
     chrome.storage.local.get(['responses'], (data) => {
@@ -62,9 +69,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btnSaveResp.onclick = () => {
-    const trigger = respTrigger.value.trim();
+    let trigger = respTrigger.value.trim();
     const text = respText.value.trim();
+
     if (!trigger || !text) return;
+
+    // Força o prefixo '\'
+    if (!trigger.startsWith('\\')) {
+      trigger = '\\' + trigger;
+    }
 
     chrome.storage.local.get(['responses'], (data) => {
       const list = data.responses || [];

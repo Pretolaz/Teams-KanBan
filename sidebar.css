@@ -353,3 +353,46 @@ body {
   cursor: pointer;
   font-size: 18px;
 }
+
+/* Info Card */
+.info-card {
+  background: #FFF9C4;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #FBC02D;
+  position: relative;
+}
+
+.info-card h4 {
+  margin: 0 0 10px 0;
+  color: #F57F17;
+  font-size: 14px;
+}
+
+.info-card ol {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #555;
+}
+
+.info-card li {
+  margin-bottom: 5px;
+}
+
+.secondary-btn {
+  background: #E0E0E0;
+  color: #333;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+  width: 100%;
+  font-weight: bold;
+}
+
+.secondary-btn:hover {
+  background: #BDBDBD;
+}

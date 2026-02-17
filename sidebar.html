@@ -63,9 +63,20 @@
 
     <main id="view-responses" class="view">
       <div class="responses-container">
+
+        <div class="info-card">
+          <h4>💡 Como usar as Respostas Rápidas</h4>
+          <ol>
+            <li>Cadastre um <b>Gatilho</b> iniciando com <code>\</code> (ex: <code>\bomdia</code>).</li>
+            <li>No chat do Teams, digite o gatilho e pressione <b>Espaço</b>.</li>
+            <li>O texto será expandido automaticamente mantendo a formatação!</li>
+          </ol>
+          <button id="btn-close-responses-internal" class="secondary-btn">Fechar Tela</button>
+        </div>
+
         <div class="form-card">
           <h3>Novo Gatilho</h3>
-          <input type="text" id="resp-trigger" placeholder="/comando">
+          <input type="text" id="resp-trigger" placeholder="\comando">
           <textarea id="resp-text" placeholder="Texto da resposta..."></textarea>
           <button id="btn-save-resp" class="action-btn">Salvar Resposta</button>
         </div>
