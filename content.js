@@ -58,8 +58,10 @@ function injectUI() {
         if (event.data.type === 'TEAMSFLOW_CLOSE') sidebarFrame.style.display = 'none';
         if (event.data.type === 'TEAMSFLOW_REQUEST_CHATS') updateChats(sidebarFrame);
         if (event.data.type === 'TEAMSFLOW_GOTO_CHAT') {
-            // Não fecha o sidebar imediatamente — navega primeiro
             navigateToChat(event.data.name);
+            // Fecha o sidebar após um pequeno delay para garantir que o
+            // clique no chat seja processado antes do iframe sumir
+            setTimeout(() => { sidebarFrame.style.display = 'none'; }, 300);
         }
     });
 
