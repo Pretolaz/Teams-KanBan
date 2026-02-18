@@ -191,3 +191,127 @@ if (btnReset) {
 
 loadData();
 
+// =============================================
+// PERSONALIZAÇÃO DE COLUNAS (Nome + Cor)
+// =============================================
+
+const COLUMN_COLORS = [
+  '#673AB7', '#3F51B5', '#2196F3', '#00BCD4',
+  '#4CAF50', '#8BC34A', '#FF9800', '#FF5722',
+  '#F44336', '#E91E63', '#9C27B0', '#607D8B'
+];
+
+const DEFAULT_COLS = {
+  todo:  { name: 'A Fazer',      color: '#673AB7' },
+  doing: { name: 'Em Progresso', color: '#FF9800' },
+  done:  { name: 'Concluído',    color: '#4CAF50' }
+};
+
+function applyColPrefs(prefs) {
+  ['todo', 'doing', 'done'].forEach(colId => {
+    const p = prefs[colId] || DEFAULT_COLS[colId];
+    const titleEl = document.getElementById(`col-${colId}-title`);
+    const colEl   = document.getElementById(`col-${colId}`);
+    if (titleEl) {
+      titleEl.textContent = p.name;
+      titleEl.style.color = p.color;
+    }
+    if (colEl) {
+      colEl.style.borderTop = `3px solid ${p.color}`;
+    }
+  });
+}
+
+function loadColPrefs(cb) {
+  if (!isContextValid()) return;
+  chrome.storage.local.get(['colPrefs'], (result) => {
+    const prefs = result.colPrefs || {};
+    applyColPrefs(prefs);
+    if (cb) cb(prefs);
+  });
+}
+
+function saveColPrefs(prefs) {
+  if (!isContextValid()) return;
+  chrome.storage.local.set({ colPrefs: prefs });
+}
+
+function openEditPanel(colId, currentPrefs) {
+  // Fecha qualquer painel aberto
+  document.querySelectorAll('.col-edit-panel').forEach(p => p.remove());
+
+  const p = currentPrefs[colId] || DEFAULT_COLS[colId];
+  const colEl = document.getElementById(`col-${colId}`);
+  const cardList = document.getElementById(`${colId}-list`);
+
+  const panel = document.createElement('div');
+  panel.className = 'col-edit-panel open';
+  panel.id = `edit-panel-${colId}`;
+
+  // Campo de nome
+  const nameLabel = document.createElement('label');
+  nameLabel.textContent = 'Nome da Coluna';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.value = p.name;
+  nameInput.maxLength = 20;
+
+  // Paleta de cores
+  const colorLabel = document.createElement('label');
+  colorLabel.textContent = 'Cor do Título';
+  const colorRow = document.createElement('div');
+  colorRow.className = 'color-row';
+
+  let selectedColor = p.color;
+
+  COLUMN_COLORS.forEach(color => {
+    const swatch = document.createElement('div');
+    swatch.className = 'col-color-swatch' + (color === selectedColor ? ' selected' : '');
+    swatch.style.background = color;
+    swatch.title = color;
+    swatch.onclick = () => {
+      selectedColor = color;
+      colorRow.querySelectorAll('.col-color-swatch').forEach(s => s.classList.remove('selected'));
+      swatch.classList.add('selected');
+    };
+    colorRow.appendChild(swatch);
+  });
+
+  // Botão salvar
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'col-edit-save';
+  saveBtn.textContent = '✓ Salvar';
+  saveBtn.onclick = () => {
+    const newName = nameInput.value.trim() || DEFAULT_COLS[colId].name;
+    currentPrefs[colId] = { name: newName, color: selectedColor };
+    saveColPrefs(currentPrefs);
+    applyColPrefs(currentPrefs);
+    panel.remove();
+  };
+
+  panel.appendChild(nameLabel);
+  panel.appendChild(nameInput);
+  panel.appendChild(colorLabel);
+  panel.appendChild(colorRow);
+  panel.appendChild(saveBtn);
+
+  // Insere o painel antes da lista de cards
+  colEl.insertBefore(panel, cardList);
+  nameInput.focus();
+}
+
+// Inicializa personalização
+loadColPrefs((prefs) => {
+  document.querySelectorAll('.col-edit-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const colId = btn.getAttribute('data-col');
+      const existingPanel = document.getElementById(`edit-panel-${colId}`);
+      if (existingPanel) {
+        existingPanel.remove(); // Toggle: fecha se já aberto
+      } else {
+        openEditPanel(colId, { ...prefs });
+      }
+    };
+  });
+});

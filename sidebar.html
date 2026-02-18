@@ -35,26 +35,35 @@
           </div>
         </div>
 
-        <div class="column" id="col-todo">
+        <div class="column" id="col-todo" data-col-id="todo">
           <div class="column-header">
-            <h2 style="color: #673AB7">A Fazer</h2>
-            <span class="badge" id="count-todo">0</span>
+            <h2 id="col-todo-title" style="color: #673AB7">A Fazer</h2>
+            <div class="col-header-actions">
+              <span class="badge" id="count-todo">0</span>
+              <button class="col-edit-btn" data-col="todo" title="Personalizar coluna">✏️</button>
+            </div>
           </div>
           <div class="card-list dropzone" id="todo-list"></div>
         </div>
 
-        <div class="column" id="col-doing">
+        <div class="column" id="col-doing" data-col-id="doing">
           <div class="column-header">
-            <h2 style="color: #FF9800">Em Progresso</h2>
-            <span class="badge" id="count-doing">0</span>
+            <h2 id="col-doing-title" style="color: #FF9800">Em Progresso</h2>
+            <div class="col-header-actions">
+              <span class="badge" id="count-doing">0</span>
+              <button class="col-edit-btn" data-col="doing" title="Personalizar coluna">✏️</button>
+            </div>
           </div>
           <div class="card-list dropzone" id="doing-list"></div>
         </div>
 
-        <div class="column" id="col-done">
+        <div class="column" id="col-done" data-col-id="done">
           <div class="column-header">
-            <h2 style="color: #4CAF50">Concluído</h2>
-            <span class="badge" id="count-done">0</span>
+            <h2 id="col-done-title" style="color: #4CAF50">Concluído</h2>
+            <div class="col-header-actions">
+              <span class="badge" id="count-done">0</span>
+              <button class="col-edit-btn" data-col="done" title="Personalizar coluna">✏️</button>
+            </div>
           </div>
           <div class="card-list dropzone" id="done-list"></div>
         </div>

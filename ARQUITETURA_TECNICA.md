@@ -51,6 +51,22 @@ O script vasculha a barra lateral esquerda em busca dos nomes das conversas.
 - **Como funciona**: Quando você clica em um card no Kanban, o script envia o nome do chat para a página pai. O `content.js` localiza o elemento na barra lateral e simula uma sequência de eventos: `mousedown` -> `mouseup` -> `click`.
 - **Por que essa sequência?** O Teams ignora cliques sintéticos simples. Ele precisa sentir a pressão e liberação do mouse para acionar a navegação do React.
 
+### Personalização de Colunas:
+- **Trigger**: Botão `✏️` (`.col-edit-btn`) no cabeçalho de cada coluna personalizável.
+- **Painel Inline**: Criado dinamicamente via JS e inserido antes da `.card-list` da coluna.
+- **Armazenamento**: `chrome.storage.local`, chave `colPrefs`. Estrutura:
+  ```json
+  {
+    "colPrefs": {
+      "todo":  { "name": "A Fazer",      "color": "#673AB7" },
+      "doing": { "name": "Em Progresso", "color": "#FF9800" },
+      "done":  { "name": "Concluído",    "color": "#4CAF50" }
+    }
+  }
+  ```
+- **Aplicação**: A função `applyColPrefs()` atualiza o `textContent` e `style.color` do `h2` de cada coluna, e adiciona `borderTop` colorido no container da coluna.
+- **Coluna Excluída**: `col-recent` (Chats Recentes) não possui o botão de edição.
+
 ---
 
 ## 👤 3. Interação com o Usuário (UI Injection)

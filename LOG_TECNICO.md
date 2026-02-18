@@ -2,6 +2,22 @@
 
 Este documento registra todas as interações assertivas, correções e novas funcionalidades implementadas no projeto, detalhando a abordagem técnica utilizada para cada acerto.
 
+## 📅 [2026-02-18] - Glassmorphism + Personalização de Colunas
+
+### 🎨 Melhorias Visuais
+1.  **Glassmorphism no Kanban**: O fundo do painel agora é semitransparente com `backdrop-filter: blur(18px)`, deixando o Teams visível por trás. As colunas e cards também ganharam camadas de blur próprias para um efeito de vidro em profundidade.
+2.  **Personalização de Colunas**: As colunas "A Fazer", "Em Progresso" e "Concluído" agora têm um botão ✏️ que abre um painel inline para editar:
+    - **Nome** da coluna (até 20 caracteres).
+    - **Cor** do título, escolhida em uma paleta de 12 cores.
+    - As preferências são salvas em `chrome.storage.local` (chave `colPrefs`) e restauradas automaticamente.
+
+### 📁 Arquivos Modificados
+- `sidebar.css`: Glassmorphism (`.overlay-container`, `.column`, `.card`) + estilos do painel de edição.
+- `sidebar.html`: Botão ✏️ e `data-col-id` nas colunas personalizáveis.
+- `kanban.js`: Lógica de `loadColPrefs`, `saveColPrefs`, `applyColPrefs`, `openEditPanel`.
+
+---
+
 ## 📅 [2026-02-17] - Smart Suggestions & Backslash Enforcement (v53.5)
 
 ### 🛠️ Melhorias de UX
