@@ -28,9 +28,14 @@ Este documento registra todas as interações assertivas, correções e novas fu
     - As preferências são salvas em `chrome.storage.local` (chave `colPrefs`) e restauradas automaticamente.
 
 ### 📁 Arquivos Modificados
-- `sidebar.css`: Glassmorphism (`.overlay-container`, `.column`, `.card`) + estilos do painel de edição.
+- `sidebar.css`: Glassmorphism (`.overlay-container`, `.column`, `.card`) + estilos do painel de edição + estilo do botão `.card-remove-btn`.
 - `sidebar.html`: Botão ✏️ e `data-col-id` nas colunas personalizáveis.
-- `kanban.js`: Lógica de `loadColPrefs`, `saveColPrefs`, `applyColPrefs`, `openEditPanel`.
+- `kanban.js`: Lógica de `loadColPrefs`, `saveColPrefs`, `applyColPrefs`, `openEditPanel` + botão `×` de remoção de cards.
+
+### 🗑️ Remoção de Cards do Kanban
+- Cards das colunas (A Fazer, Em Progresso, Concluído) agora possuem um botão `×` no canto inferior direito.
+- Aparece ao passar o mouse (opacity 0 → 1) e fica vermelho ao hover.
+- Ao clicar, exibe confirmação nativa. Se confirmado, remove o card do `chrome.storage` e o chat volta a aparecer em "Chats Recentes".
 
 ---
 
@@ -114,15 +119,19 @@ A estratégia de deleção manual via DOM (v54) falhou porque o CKEditor restaur
 
 ---
 
-## 📅 [2026-02-16] - O Dilema do Ghost Model (v52)
+## 📅 [2026-02-14] - Correção da Navegação GOTO_CHAT (Teams V2) ⚠️ Superado
 
----
+> **Nota**: Esta abordagem foi **superada** em 18/02/2026. A estratégia de `mousedown+mouseup+click` no `fui-TreeItem` causava colapso de seções. Ver entrada de 18/02 para a solução definitiva com `data-inp`.
 
-## 📅 [2026-02-16] - O Dilema do Ghost Model (v52)
+### 🛠️ Problema
+A navegação automática para chats a partir do Kanban falhava devido a mudanças nos seletores do Microsoft Teams V2 (Fluent UI).
 
----
+### ✅ Solução Técnica (Histórica)
+1.  **Seletores Elásticos**: Atualização para buscar elementos baseados em classes Fluent UI (`.fui-ListItem`, `.fui-TreeItem`) e atributos `data-tid`.
+2.  **Simulação de Pressão Nativa**: Implementação da sequência de eventos `mousedown` → `mouseup` → `click`. O Teams ignorava cliques sintéticos isolados.
 
-## 📅 [2026-02-16] - A Batalha Final do Gatilho Residual (v44 - v51)
+### 📁 Arquivos Modificados
+- `content.js`: Atualização das funções `getRecentChats` e `navigateToChat`.
 
 ### 🛠️ Problema
 O CKEditor 5 do Microsoft Teams V2 provou ser um dos editores mais agressivos do mercado. Ele mantém um buffer interno de sincronização que restaura o gatilho (ex: `/b`) mesmo após deleções bem-sucedidas no DOM, resultando no bug `/bBom dia!` ou na duplicação da resposta rápida.

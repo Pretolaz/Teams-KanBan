@@ -104,9 +104,10 @@ Para popular o Kanban, o script varre o DOM buscando:
     - `.fui-TreeItem__content` (Fluent UI moderno)
     - `[role="treeitem"]` (Acessibilidade)
 
-2.  **Container do Item de Chat (O elemento clicável)**:
-    - Buscamos o pai (`closest`) que tenha: `[role="row"]`, `[role="listitem"]`, `.fui-ListItem` ou `.fui-TreeItem`.
-    - *Ação*: Disparamos `mousedown`, `mouseup` e `click` neste container para abrir o chat.
+2.  **Elemento Clicável Correto para Navegação**:
+    - ✅ `[data-inp="simple-collab-unified-chat-switch"]` — Layout interno do item. Abre o chat **sem** colapsar a seção pai.
+    - ❌ `fui-TreeItem` (container) — Faz toggle da seção. **Não usar para navegação.**
+    - *Ação*: Disparamos um único `click` no elemento `data-inp`.
 
 3.  **Indicador de Não Lido (Unread Badge)**:
     - `.fui-PresenceBadge` (Badge de status/notificação)
@@ -118,6 +119,12 @@ Para popular o Kanban, o script varre o DOM buscando:
 - **Posicionamento**: Calculado via `getBoundingClientRect()` do cursor de texto (Range).
   - Topo: `rect.top + window.scrollY - boxHeight - 5` (Acima do cursor)
   - Esquerda: `rect.left + window.scrollX`
+
+### D. Botão de Remoção de Card (`×`)
+- **Classe**: `.card-remove-btn` — `position: absolute`, canto inferior direito do card.
+- **Visibilidade**: `opacity: 0` por padrão; `opacity: 1` no hover do `.card` pai.
+- **Ação**: Remove o card do `chrome.storage.local` (chave `cards`) após confirmação. O chat volta a aparecer em "Chats Recentes" automaticamente.
+- **Presente em**: Apenas cards das colunas do Kanban (não nos cards de "Chats Recentes").
 
 ---
 
