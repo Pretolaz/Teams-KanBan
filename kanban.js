@@ -58,14 +58,29 @@ function createCardElement(card, isRecent = false) {
       </div>
     </div>
     <input type="text" class="card-note" placeholder="Adicione uma nota..." maxlength="50" value="${note}">
+    ${!isRecent ? '<button class="card-remove-btn" title="Remover do quadro">×</button>' : ''}
   `;
 
   // --- Lógica de Navegação ---
   div.onclick = (e) => {
-    // Se clicou no input ou no semáforo, não navega
-    if (e.target.tagName === 'INPUT' || e.target.classList.contains('status-dot')) return;
+    // Se clicou no input, semáforo ou botão de remover, não navega
+    if (e.target.tagName === 'INPUT' || e.target.classList.contains('status-dot') || e.target.classList.contains('card-remove-btn')) return;
     window.parent.postMessage({ type: 'TEAMSFLOW_GOTO_CHAT', name: card.name }, '*');
   };
+
+  // --- Lógica de Remoção (volta para Chats Recentes) ---
+  if (!isRecent) {
+    const removeBtn = div.querySelector('.card-remove-btn');
+    if (removeBtn) {
+      removeBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm(`Remover "${card.name}" do quadro Kanban?\nO chat voltará a aparecer em Chats Recentes.`)) {
+          db.cards = db.cards.filter(c => c.id !== card.id);
+          chrome.storage.local.set({ cards: db.cards }, loadData);
+        }
+      };
+    }
+  }
 
   // --- Lógica de Arrastar ---
   div.ondragstart = (e) => {
@@ -202,16 +217,16 @@ const COLUMN_COLORS = [
 ];
 
 const DEFAULT_COLS = {
-  todo:  { name: 'A Fazer',      color: '#673AB7' },
+  todo: { name: 'A Fazer', color: '#673AB7' },
   doing: { name: 'Em Progresso', color: '#FF9800' },
-  done:  { name: 'Concluído',    color: '#4CAF50' }
+  done: { name: 'Concluído', color: '#4CAF50' }
 };
 
 function applyColPrefs(prefs) {
   ['todo', 'doing', 'done'].forEach(colId => {
     const p = prefs[colId] || DEFAULT_COLS[colId];
     const titleEl = document.getElementById(`col-${colId}-title`);
-    const colEl   = document.getElementById(`col-${colId}`);
+    const colEl = document.getElementById(`col-${colId}`);
     if (titleEl) {
       titleEl.textContent = p.name;
       titleEl.style.color = p.color;

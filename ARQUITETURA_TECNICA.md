@@ -48,8 +48,11 @@ O script vasculha a barra lateral esquerda em busca dos nomes das conversas.
 - **Lógica**: Busca por elementos com classes que contenham `unread`, badges de presença ou verifica se o `fontWeight` do título é maior ou igual a 600 (Bold).
 
 ### Navegação Automática:
-- **Como funciona**: Quando você clica em um card no Kanban, o script envia o nome do chat para a página pai. O `content.js` localiza o elemento na barra lateral e simula uma sequência de eventos: `mousedown` -> `mouseup` -> `click`.
-- **Por que essa sequência?** O Teams ignora cliques sintéticos simples. Ele precisa sentir a pressão e liberação do mouse para acionar a navegação do React.
+- **Como funciona**: Quando você clica em um card no Kanban, o script envia o nome do chat para a página pai. O `content.js` localiza o elemento na barra lateral e simula um `click`.
+- **Elemento Alvo Correto** (identificado por inspeção do DOM):
+  - ✅ `[data-inp="simple-collab-unified-chat-switch"]` — Layout interno do item. Abre o chat sem afetar a seção/grupo pai.
+  - ❌ `fui-TreeItem` (container) — Faz **toggle** da seção, colapsando o grupo. **Não usar.**
+- **Fallback**: Se o `data-inp` não for encontrado, sobe via `.closest('.fui-TreeItemLayout')` a partir do `span[id^="title-chat-list-item_"]`.
 
 ### Personalização de Colunas:
 - **Trigger**: Botão `✏️` (`.col-edit-btn`) no cabeçalho de cada coluna personalizável.
@@ -74,6 +77,8 @@ O script vasculha a barra lateral esquerda em busca dos nomes das conversas.
 ### Botão Flutuante (TF):
 - Injetado diretamente no `document.body` com `id="tf-trigger"`.
 - Possui `zIndex: 9999999` para flutuar sobre todos os elementos do Teams.
+- **Atalho de Teclado**: `Alt+K` aciona o mesmo efeito que clicar no botão.
+- **Tooltip**: Exibido via CSS `::after` com o texto `Alt+K` ao passar o mouse.
 
 ### Sidebar (Iframe):
 - Injetado como um `<iframe>` com `id="tf-iframe"`.

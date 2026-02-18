@@ -35,6 +35,8 @@ function injectUI() {
     triggerButton.style.zIndex = '9999999';
     document.body.appendChild(triggerButton);
 
+    triggerButton.title = 'TeamsFlow Kanban (Alt+K)';
+
     triggerButton.onclick = () => {
         const isHidden = sidebarFrame.style.display === 'none';
         sidebarFrame.style.display = isHidden ? 'block' : 'none';
@@ -44,12 +46,20 @@ function injectUI() {
         }
     };
 
+    // Atalho de teclado Alt+K
+    document.addEventListener('keydown', (e) => {
+        if (e.altKey && e.key === 'k') {
+            e.preventDefault();
+            triggerButton.click();
+        }
+    });
+
     window.addEventListener('message', (event) => {
         if (event.data.type === 'TEAMSFLOW_CLOSE') sidebarFrame.style.display = 'none';
         if (event.data.type === 'TEAMSFLOW_REQUEST_CHATS') updateChats(sidebarFrame);
         if (event.data.type === 'TEAMSFLOW_GOTO_CHAT') {
+            // Não fecha o sidebar imediatamente — navega primeiro
             navigateToChat(event.data.name);
-            sidebarFrame.style.display = 'none';
         }
     });
 
@@ -341,37 +351,42 @@ function updateChats(frame) {
 function navigateToChat(name) {
     console.log(`TeamsFlow: Navegando para chat "${name}"...`);
 
-    // Seletores variados para garantir compatibilidade com Teams V2
-    const selectors = [
-        'span[id^="title-chat-list-item_"]',
-        '[data-tid*="chat-list-item-title"]',
-        '.fui-TreeItem__content',
-        '[role="treeitem"]'
-    ];
-
-    const elements = Array.from(document.querySelectorAll(selectors.join(',')));
-    const target = elements.find(el => {
+    // Estratégia 1: Elemento exato identificado por inspeção do DOM do Teams
+    // O elemento data-inp="simple-collab-unified-chat-switch" é o layout interno
+    // do item de chat. Clicar nele abre o chat SEM colapsar a seção/grupo pai.
+    // Clicar no container fui-TreeItem faz toggle da seção — NÃO usar.
+    const layoutEls = Array.from(document.querySelectorAll('[data-inp="simple-collab-unified-chat-switch"]'));
+    let target = layoutEls.find(el => {
         const text = el.textContent.trim().toLowerCase();
         return text && (text.includes(name.toLowerCase()) || name.toLowerCase().includes(text));
     });
 
-    if (target) {
-        const clickable = target.closest('[role="row"], [role="listitem"], [role="treeitem"], .fui-ListItem, .fui-TreeItem') || target;
-
-        console.log("TeamsFlow: Chat encontrado. Acionando...");
-        clickable.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        // Sequência de eventos para "enganar" o React/Teams
-        ['mousedown', 'mouseup', 'click'].forEach(evtType => {
-            clickable.dispatchEvent(new MouseEvent(evtType, {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                buttons: 1
-            }));
+    // Estratégia 2 (fallback): Busca pelo span de título e sobe para o layout pai
+    if (!target) {
+        const titleSpans = Array.from(document.querySelectorAll('span[id^="title-chat-list-item_"]'));
+        const titleEl = titleSpans.find(el => {
+            const text = el.textContent.trim().toLowerCase();
+            return text && (text.includes(name.toLowerCase()) || name.toLowerCase().includes(text));
         });
+        if (titleEl) {
+            // Sobe até o layout interno (fui-TreeItemLayout), não o TreeItem
+            target = titleEl.closest('.fui-TreeItemLayout, [data-inp]') || titleEl.parentElement;
+        }
+    }
 
-        if (typeof clickable.focus === 'function') clickable.focus();
+    if (target) {
+        console.log('TeamsFlow: Chat encontrado. Acionando via layout interno...');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Clique simples no layout interno — não dispara toggle da seção
+        target.dispatchEvent(new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            buttons: 1
+        }));
+
+        if (typeof target.focus === 'function') target.focus();
     } else {
         console.warn(`TeamsFlow: Chat "${name}" não localizado na barra lateral.`);
     }

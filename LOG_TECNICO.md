@@ -2,6 +2,22 @@
 
 Este documento registra todas as interações assertivas, correções e novas funcionalidades implementadas no projeto, detalhando a abordagem técnica utilizada para cada acerto.
 
+## 📅 [2026-02-18] - Atalho Alt+K + Correção de Navegação
+
+### 🔧 Correções
+1.  **Bug de Navegação (GOTO_CHAT)**: Clicar em um card fechava o Kanban e colapsava a Seção/Grupo do chat no Teams.
+    - **Causa Raiz**: O script clicava no container `fui-TreeItem`, que é o elemento de "toggle" da seção.
+    - **Correção**: Agora clicamos no elemento interno `[data-inp="simple-collab-unified-chat-switch"]`, que é o layout real do item de chat e abre a conversa sem afetar a seção pai.
+    - O sidebar também não fecha mais automaticamente ao navegar.
+2.  **Atalho de Teclado**: `Alt+K` abre/fecha o painel Kanban.
+3.  **Tooltip no Botão Flutuante**: Ao passar o mouse no botão `TF`, aparece a legenda `Alt+K` via CSS `::after`.
+
+### 📁 Arquivos Modificados
+- `content.js`: Atalho `Alt+K`, função `navigateToChat` reescrita, tooltip via `title`.
+- `content.css`: Tooltip CSS `::after` no `#tf-trigger`.
+
+---
+
 ## 📅 [2026-02-18] - Glassmorphism + Personalização de Colunas
 
 ### 🎨 Melhorias Visuais
