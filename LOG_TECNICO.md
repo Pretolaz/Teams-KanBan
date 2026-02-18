@@ -2,6 +2,21 @@
 
 Este documento registra todas as interações assertivas, correções e novas funcionalidades implementadas no projeto, detalhando a abordagem técnica utilizada para cada acerto.
 
+## 📅 [2026-02-18] - Tratamento Silencioso de Erros + README
+
+### 🔧 Correções
+1.  **Erros Silenciosos em `navigateToChat`**: A função foi envolvida em `try/catch` completo.
+    - Se o chat não for encontrado: loga `console.warn` (não `console.error`) e fecha o Kanban normalmente.
+    - Se ocorrer qualquer exceção inesperada: suprimida silenciosamente, sem propagar erros para a página de extensões do Chrome.
+    - **Motivo**: Erros não tratados aparecem na página `chrome://extensions` como alertas vermelhos, o que pode gerar avaliações negativas na Chrome Web Store.
+2.  **README.md**: Criado/reescrito com documentação completa da extensão.
+
+### 📁 Arquivos Modificados
+- `content.js`: `navigateToChat` com `try/catch` e retorno booleano.
+- `README.md`: Reescrito completamente.
+
+---
+
 ## 📅 [2026-02-18] - Atalho Alt+K + Correção de Navegação
 
 ### 🔧 Correções

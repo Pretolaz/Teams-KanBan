@@ -351,48 +351,58 @@ function updateChats(frame) {
 }
 
 function navigateToChat(name) {
-    console.log(`TeamsFlow: Navegando para chat "${name}"...`);
+    try {
+        console.log(`TeamsFlow: Navegando para chat "${name}"...`);
 
-    // Estratégia 1: Elemento exato identificado por inspeção do DOM do Teams
-    // O elemento data-inp="simple-collab-unified-chat-switch" é o layout interno
-    // do item de chat. Clicar nele abre o chat SEM colapsar a seção/grupo pai.
-    // Clicar no container fui-TreeItem faz toggle da seção — NÃO usar.
-    const layoutEls = Array.from(document.querySelectorAll('[data-inp="simple-collab-unified-chat-switch"]'));
-    let target = layoutEls.find(el => {
-        const text = el.textContent.trim().toLowerCase();
-        return text && (text.includes(name.toLowerCase()) || name.toLowerCase().includes(text));
-    });
-
-    // Estratégia 2 (fallback): Busca pelo span de título e sobe para o layout pai
-    if (!target) {
-        const titleSpans = Array.from(document.querySelectorAll('span[id^="title-chat-list-item_"]'));
-        const titleEl = titleSpans.find(el => {
+        // Estratégia 1: Elemento exato identificado por inspeção do DOM do Teams
+        // O elemento data-inp="simple-collab-unified-chat-switch" é o layout interno
+        // do item de chat. Clicar nele abre o chat SEM colapsar a seção/grupo pai.
+        // Clicar no container fui-TreeItem faz toggle da seção — NÃO usar.
+        const layoutEls = Array.from(document.querySelectorAll('[data-inp="simple-collab-unified-chat-switch"]'));
+        let target = layoutEls.find(el => {
             const text = el.textContent.trim().toLowerCase();
             return text && (text.includes(name.toLowerCase()) || name.toLowerCase().includes(text));
         });
-        if (titleEl) {
-            // Sobe até o layout interno (fui-TreeItemLayout), não o TreeItem
-            target = titleEl.closest('.fui-TreeItemLayout, [data-inp]') || titleEl.parentElement;
+
+        // Estratégia 2 (fallback): Busca pelo span de título e sobe para o layout pai
+        if (!target) {
+            const titleSpans = Array.from(document.querySelectorAll('span[id^="title-chat-list-item_"]'));
+            const titleEl = titleSpans.find(el => {
+                const text = el.textContent.trim().toLowerCase();
+                return text && (text.includes(name.toLowerCase()) || name.toLowerCase().includes(text));
+            });
+            if (titleEl) {
+                target = titleEl.closest('.fui-TreeItemLayout, [data-inp]') || titleEl.parentElement;
+            }
         }
-    }
 
-    if (target) {
-        console.log('TeamsFlow: Chat encontrado. Acionando via layout interno...');
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (target) {
+            console.log('TeamsFlow: Chat encontrado. Acionando via layout interno...');
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-        // Clique simples no layout interno — não dispara toggle da seção
-        target.dispatchEvent(new MouseEvent('click', {
-            view: window,
-            bubbles: true,
-            cancelable: true,
-            buttons: 1
-        }));
+            target.dispatchEvent(new MouseEvent('click', {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                buttons: 1
+            }));
 
-        if (typeof target.focus === 'function') target.focus();
-    } else {
-        console.warn(`TeamsFlow: Chat "${name}" não localizado na barra lateral.`);
+            if (typeof target.focus === 'function') target.focus();
+            return true;
+        } else {
+            // Chat não encontrado — pode estar fora da tela ou em seção recolhida.
+            // Apenas loga silenciosamente. O sidebar será fechado normalmente.
+            console.warn(`TeamsFlow: Chat "${name}" não visível na barra lateral. Fechando Kanban.`);
+            return false;
+        }
+    } catch (err) {
+        // Suprime qualquer erro inesperado para não poluir o console nem
+        // gerar alertas na página de extensões do Chrome.
+        console.warn('TeamsFlow: Erro silencioso em navigateToChat.', err.message);
+        return false;
     }
 }
+
 
 function getRecentChats() {
     // Busca abrangente por itens de chat
