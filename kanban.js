@@ -1,4 +1,4 @@
-// TeamsFlow Pro - Kanban Logic
+// Teams KanBan Flow - Kanban Logic
 let db = { cards: [] };
 
 // Auxiliar para verificar se o contexto ainda é válido
@@ -8,7 +8,7 @@ function isContextValid() {
 
 function loadData() {
   if (!isContextValid()) {
-    console.warn("TeamsFlow: Contexto inválido em loadData.");
+    console.warn("Teams KanBan Flow: Contexto inválido em loadData.");
     return;
   }
   chrome.storage.local.get(['cards'], (result) => {
@@ -193,11 +193,11 @@ if (btnReset) {
             console.error("Erro ao resetar:", chrome.runtime.lastError);
             return;
           }
-          console.log("TeamsFlow: Quadros resetados.");
+          console.log("Teams KanBan Flow: Quadros resetados.");
           loadData();
         });
       } catch (e) {
-        console.error("TeamsFlow: Falha crítica no reset.", e);
+        console.error("Teams KanBan Flow: Falha crítica no reset.", e);
         alert("Ocorreu um erro ao resetar. Tente atualizar a página.");
       }
     }

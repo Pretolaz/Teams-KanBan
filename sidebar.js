@@ -1,4 +1,4 @@
-// TeamsFlow Pro - Sidebar Logic
+// Teams KanBan Flow - Sidebar Logic
 
 document.addEventListener('DOMContentLoaded', () => {
   const btnKanban = document.getElementById('btn-kanban');

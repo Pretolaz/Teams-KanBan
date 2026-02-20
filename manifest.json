@@ -1,35 +1,50 @@
 {
   "manifest_version": 3,
-  "name": "TeamsFlow Pro",
+  "name": "Teams KanBan Flow",
   "version": "1.2",
   "description": "Kanban e Respostas Rápidas para Microsoft Teams",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "icons": {
-    "16":  "icons/icon16.png",
-    "32":  "icons/icon32.png",
-    "48":  "icons/icon48.png",
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "action": {
     "default_popup": "index.html",
     "default_icon": {
-      "16":  "icons/icon16.png",
-      "32":  "icons/icon32.png",
-      "48":  "icons/icon48.png",
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
   "content_scripts": [
     {
-      "matches": ["https://teams.microsoft.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"]
+      "matches": [
+        "https://teams.microsoft.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sidebar.html", "sidebar.js", "sidebar.css", "kanban.js"],
-      "matches": ["https://teams.microsoft.com/*"]
+      "resources": [
+        "sidebar.html",
+        "sidebar.js",
+        "sidebar.css",
+        "kanban.js"
+      ],
+      "matches": [
+        "https://teams.microsoft.com/*"
+      ]
     }
   ]
 }

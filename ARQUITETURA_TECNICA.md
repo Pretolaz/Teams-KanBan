@@ -1,4 +1,4 @@
-# Documentação Técnica de Engenharia Reversa e Seletores - TeamsFlow Pro
+# Documentação Técnica de Engenharia Reversa e Seletores - Teams KanBan Flow
 
 Este documento serve como guia de manutenção para localizar e ajustar seletores e lógicas caso a interface do Microsoft Teams (Web Corporativo) mude.
 

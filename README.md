@@ -1,4 +1,4 @@
-# TeamsFlow Pro — Extensão Chrome para Microsoft Teams
+# Teams KanBan Flow — Extensão Chrome para Microsoft Teams
 
 > **Kanban visual + Respostas Rápidas diretamente no Microsoft Teams Web.**
 
@@ -24,7 +24,7 @@
 ### 🎨 Interface
 - Design **glassmorphism**: fundo semitransparente com blur, deixando o Teams visível por trás.
 - Atalho de teclado **`Alt+K`** para abrir/fechar o painel.
-- Botão flutuante **TF** com tooltip `Alt+K` ao passar o mouse.
+- Botão flutuante **TKF** com tooltip `Alt+K` ao passar o mouse.
 
 ---
 
@@ -44,12 +44,13 @@
 ```
 Teams-KanBan/
 ├── manifest.json          # Configuração da extensão Chrome (MV3)
+├── index.html             # Popup da extensão (ícone da barra do Chrome)
 ├── content.js             # Script injetado no Teams: navegação, expansão, popup
 ├── content.css            # Estilos do botão flutuante e popup de sugestões
-├── sidebar.html           # Interface do painel (Kanban + Respostas)
+├── sidebar.html           # Interface do painel principal (Kanban + Respostas)
 ├── sidebar.css            # Estilos do painel
 ├── sidebar.js             # Lógica da sidebar: navegação entre views, salvar respostas
-├── kanban.js              # Lógica do Kanban: cards, drag-and-drop, personalização
+├── kanban.js              # Lógica do Kanban (utilizado pela sidebar.html)
 ├── icons/                 # Ícones da extensão (16, 32, 48, 128px)
 ├── README.md              # Este arquivo
 ├── LOG_TECNICO.md         # Histórico cronológico de implementações e correções

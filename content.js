@@ -1,4 +1,4 @@
-// TeamsFlow Pro - Content Script v13
+// Teams KanBan Flow - Content Script v13
 let uiInjected = false;
 let responsesCache = [];
 
@@ -8,17 +8,17 @@ function updateResponsesCache() {
             chrome.storage.local.get(['responses'], (data) => {
                 if (chrome.runtime.lastError) return;
                 responsesCache = data.responses || [];
-                console.log(`TeamsFlow: Cache atualizado (${responsesCache.length} atalhos).`);
+                console.log(`Teams KanBan Flow: Cache atualizado (${responsesCache.length} atalhos).`);
             });
         }
     } catch (e) {
-        console.warn("TeamsFlow: Contexto invalidado.");
+        console.warn("Teams KanBan Flow: Contexto invalidado.");
     }
 }
 
 function injectUI() {
     if (uiInjected || !document.body) return;
-    console.log("TeamsFlow: Injetando UI...");
+    console.log("Teams KanBan Flow: Injetando UI...");
 
     const sidebarFrame = document.createElement('iframe');
     sidebarFrame.src = chrome.runtime.getURL('sidebar.html');
@@ -30,12 +30,12 @@ function injectUI() {
 
     const triggerButton = document.createElement('button');
     triggerButton.id = 'tf-trigger';
-    triggerButton.textContent = 'TF';
+    triggerButton.textContent = 'TKF';
     triggerButton.style.position = 'fixed';
     triggerButton.style.zIndex = '9999999';
     document.body.appendChild(triggerButton);
 
-    triggerButton.title = 'TeamsFlow Kanban (Alt+K)';
+    triggerButton.title = 'Teams KanBan Flow (Alt+K)';
 
     triggerButton.onclick = () => {
         const isHidden = sidebarFrame.style.display === 'none';
@@ -74,7 +74,7 @@ let lastTriggerMatch = "";
 let lastTriggerTime = 0;
 
 function setupQuickReplies() {
-    console.log("TeamsFlow: Monitorando expansão v53.4 (v53 + Regex Fix)...");
+    console.log("Teams KanBan Flow: Monitorando expansão v53.4 (v53 + Regex Fix)...");
 
     const syncToEditor = (el, text) => {
         const dataTransfer = new DataTransfer();
@@ -129,7 +129,7 @@ function setupQuickReplies() {
                 // Proteção contra múltiplos disparos
                 if (trigger === lastTriggerMatch && (Date.now() - lastTriggerTime) < 2000) return;
 
-                console.log(`TeamsFlow: [MATCH] v53.4 para "${trigger}"...`);
+                console.log(`Teams KanBan Flow: [MATCH] v53.4 para "${trigger}"...`);
 
                 isExpanding = true;
                 lastTriggerMatch = trigger;
@@ -157,7 +157,7 @@ function setupQuickReplies() {
                     setTimeout(() => {
                         // Verificação de segurança v53 original
                         if (el.textContent.includes(trigger)) {
-                            console.warn("TeamsFlow: Atomic Paste falhou na remoção. Tentando fallback v53...");
+                            console.warn("Teams KanBan Flow: Atomic Paste falhou na remoção. Tentando fallback v53...");
                             // Fallback clássico v53
                             try {
                                 const range = document.createRange();
@@ -185,7 +185,7 @@ function setupQuickReplies() {
                         } catch (e) { }
 
                         setTimeout(() => { isExpanding = false; }, 400);
-                        console.log("TeamsFlow: Ciclo v53.4 finalizado.");
+                        console.log("Teams KanBan Flow: Ciclo v53.4 finalizado.");
                     }, 100);
 
                     break;
@@ -352,7 +352,7 @@ function updateChats(frame) {
 
 function navigateToChat(name) {
     try {
-        console.log(`TeamsFlow: Navegando para chat "${name}"...`);
+        console.log(`Teams KanBan Flow: Navegando para chat "${name}"...`);
 
         // Estratégia 1: Elemento exato identificado por inspeção do DOM do Teams
         // O elemento data-inp="simple-collab-unified-chat-switch" é o layout interno
@@ -377,7 +377,7 @@ function navigateToChat(name) {
         }
 
         if (target) {
-            console.log('TeamsFlow: Chat encontrado. Acionando via layout interno...');
+            console.log('Teams KanBan Flow: Chat encontrado. Acionando via layout interno...');
             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
             target.dispatchEvent(new MouseEvent('click', {
@@ -392,13 +392,13 @@ function navigateToChat(name) {
         } else {
             // Chat não encontrado — pode estar fora da tela ou em seção recolhida.
             // Apenas loga silenciosamente. O sidebar será fechado normalmente.
-            console.warn(`TeamsFlow: Chat "${name}" não visível na barra lateral. Fechando Kanban.`);
+            console.warn(`Teams KanBan Flow: Chat "${name}" não visível na barra lateral. Fechando Kanban.`);
             return false;
         }
     } catch (err) {
         // Suprime qualquer erro inesperado para não poluir o console nem
         // gerar alertas na página de extensões do Chrome.
-        console.warn('TeamsFlow: Erro silencioso em navigateToChat.', err.message);
+        console.warn('Teams KanBan Flow: Erro silencioso em navigateToChat.', err.message);
         return false;
     }
 }

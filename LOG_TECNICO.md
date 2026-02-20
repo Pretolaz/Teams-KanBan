@@ -1,4 +1,4 @@
-# Log Técnico de Implementações - TeamsFlow Pro
+# Log Técnico de Implementações - Teams KanBan Flow
 
 Este documento registra todas as interações assertivas, correções e novas funcionalidades implementadas no projeto, detalhando a abordagem técnica utilizada para cada acerto.
 
