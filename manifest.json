@@ -24,7 +24,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://teams.microsoft.com/*"
+        "https://teams.microsoft.com/*",
+        "https://teams.cloud.microsoft.com/*"
       ],
       "js": [
         "content.js"
@@ -43,7 +44,8 @@
         "kanban.js"
       ],
       "matches": [
-        "https://teams.microsoft.com/*"
+        "https://teams.microsoft.com/*",
+        "https://teams.cloud.microsoft.com/*"
       ]
     }
   ]
